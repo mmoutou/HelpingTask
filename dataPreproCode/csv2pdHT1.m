@@ -1,5 +1,6 @@
 function [v, d, p] = csv2pdHT1(fileN,data_dir,HTdir)
 % [v, d, p] = CSV2PDHT1(FILEN,DATA_DIR,HTDIR) converst Jae's csv to structures p and d
+%    structures for MentalizingSelfOther modelling (and towards SPM based analyses)
 % csv2pdHT1 also initializes the variable v. All these are used in HT1ll1 and the like.
 %   fileN is e.g. helpTask2025_PARTICIPANT_SESSION_2026-07-02_16h42.46.468.csv 
 %   The rest are optional -- where to find and store the data, and the directory
