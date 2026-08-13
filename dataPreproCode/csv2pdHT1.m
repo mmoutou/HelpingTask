@@ -1,6 +1,5 @@
 function [v, d, p] = csv2pdHT1(fileN,data_dir,HTdir)
-% [v, d, p] = CSV2PDHT1(FILEN,DATA_DIR,HTDIR) converst Jae's csv to structures p and d
-%    structures for MentalizingSelfOther modelling (and towards SPM based analyses)
+% [v, d, p] = CSV2PDHT1(FILEN,DATA_DIR,HTDIR) convert Jae's csv to structures p and d
 % csv2pdHT1 also initializes the variable v. All these are used in HT1ll1 and the like.
 %   fileN is e.g. helpTask2025_PARTICIPANT_SESSION_2026-07-02_16h42.46.468.csv 
 %   The rest are optional -- where to find and store the data, and the directory
@@ -13,7 +12,8 @@ datT = HT1json2mat(fileN);
 
 %%  Fill in p ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 p.helperNum = max(datT{:,"Block"});
-p.code = datT.PID{end}; 
+p.code = datT.ProlificId{end}; % THIS IS PROLIFIC ID FROM PAVLOVIA, NOT FROM PROLIFIC DEMOGRAPHICS!
+p.PID = datT.PID{end}; 
 try
     p.HTdir = HTdir;
 catch
@@ -81,11 +81,11 @@ for helperN=1:p.helperNum
 
     % Before-outcomes row, tagged 901 in col 2 of d.evo{helperN}
     d.evo{helperN}(p.polRow{helperN},SpolCol) = datT{TRow{helperN},"Effort Intended"}; 
-    d.evo{helperN}(p.polRow{helperN},sWorkCol) = datT{TRow{helperN},"Effort Actual"}; 
     d.evo{helperN}(p.polRow{helperN},OpolCol) = NaN;   % The Helper policy should not matter.
-    d.evo{helperN}(p.polRow{helperN},oWorkCol) = datT{TRow{helperN},"Partner Effort"}; 
-
-    % Outcomes row, on the same row as the exchange (rather than the decisions or evaluations): 
+    
+    % Observations row, on the same row as the exchange (rather than the decisions or evaluations): 
+    d.evo{helperN}(p.evoSt{helperN},sWorkCol) = datT{TRow{helperN},"Effort Actual"}; 
+    d.evo{helperN}(p.evoSt{helperN},oWorkCol) = datT{TRow{helperN},"Partner Effort"}; 
     d.evo{helperN}(p.evoSt{helperN},retSCol) = datT{TRow{helperN},"Points For Help-Seeker"}; 
     d.evo{helperN}(p.evoSt{helperN},retOCol) = datT{TRow{helperN},"Points For Helper"}; 
 
@@ -96,9 +96,20 @@ for helperN=1:p.helperNum
     d.evo{helperN}(p.QRow{helperN},RTSatisfCol)= datT{TRow{helperN},"RT Satisfaction Rating (ms)"};     
 end
 
-% Some default values -- be careful not to take them as if actually elicited!
-d.Spref = [0 1 2 2]; 
-warning('d.Spref set to [0 1 2 2] as default - this is NOT experimental data!');
+% Some default values -- deliberately set to unlikely but should-compute values
+% Be careful not to take them as if actually elicited!
+d.Spref    = [0 1 2 2];     % Peaks of one's own preferred response for level of contrib. of Other
+d.prevPri= [0.2 0.25  0.3  0.25];  % Prior over prevalance of location of preference peak of Others.   
+d.PartnPr= [0.05 0.05 0.45 0.45] ; % participant's preferences about the type of Other
+                                   % they would like to deal with.
+d.T = 0.1; 
+d.blockLR = 0.99;
+% The next 3 are rule-of-thumb values from some of Meera's project -- see e.g.
+% /home/michael/Dropbox/BASOR/BASOR_output/RiverCrossing/rc4fmri/main/beh_phys/ic2behan/Gosalia_et_al_result_copies/JointPref/magnanimToApr2024/fitIC2Sf.csv
+d.evalRL =  [-1.7346 -2.1972 -1.3863 -0.6931 0.3300 0.6700 0.6700 0 -0.8473];
+d.feelm  =  5;  
+d.feelu  =  3;
+warning('Param for pS set to defaults, e.g. e.g. d.Spref=[0 1 2 2] - THESE ARE NOT experimental data!');
 
 %% End piece - tidy up and write copies ----------------------                
 try
