@@ -41,7 +41,16 @@ lpri.t =  - gamlike( psPr.T0, ps.T);
 % for blockLR: 
 lpri.blockLR = -betalike(psPr.blockLR0, ps.blockLR );
 
-slPri = lpri.t+lpri.spartnu+lpri.spartnp+sum(lpri.spref(:))+lpri.blockLR;
+% OZ Aug 26: lpri.prevp and lpri.prevu are computed above but were not in this sum,
+% so prevp and prevu were the only two parameters fitted without a prior while their
+% counterparts SPartp and SPartu had theirs. The consequence is visible in the fits:
+% prevu drifting towards zero raises the binomial to a huge power and collapses the
+% prevalence belief onto a single type, e.g. prevu = -0.043 giving
+% prevPri = [1, 1e-17, 2e-23, 4e-18]. The gamma prior on abs(prevu) penalises exactly
+% that corner, 3.19 nats at |prevu| = 0.043 against 1.29 at |prevu| = 1.97, and it
+% diverges at 0, so the degenerate solution becomes unreachable rather than merely
+% unlikely. Both terms added below.
+slPri = lpri.t+lpri.prevp+lpri.prevu+lpri.spartnu+lpri.spartnp+sum(lpri.spref(:))+lpri.blockLR;
 
 return;
 

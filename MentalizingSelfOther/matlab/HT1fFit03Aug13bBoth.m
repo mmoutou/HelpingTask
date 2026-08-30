@@ -3,10 +3,24 @@
 % To fit person-evaluation ratings, given the interactive behaviour (decision making)
 % for the Prolific 03Aug26 Helping Task (HT1) dataset (which has no Other->Self ratings).
 %
-% Version 13  uses returns based exponential Returns kernel / autoregressive  RL approach, and
+% Version 13  uses an exponential Returns kernel / autoregressive RL approach, and
 %             includes a constant intercept E0 = [E0self,E0other]' as well as 
 %             allowing Self Ret -> Oeval to be different than vice versa, and wOS22 
 %             not constrained to 0 but freely fitted too.
+%
+% Fixed Aug 26 (OZ), four things:
+%  (a) evalRL(13) EvBlockLR now enters the likelihood, see llfeelHT1b. It used to be
+%      fitted and reported without being read, so fmincon returned the starting value
+%      untouched and the Hessian had an exactly zero row and column. That is why ALL
+%      the standard errors came back NaN, not just this one's. Checked numerically:
+%      sweeping it across its whole range left the summed log-likelihood identical to
+%      ten decimal places and its finite-difference derivative was exactly zero.
+%  (b) lambda2 is now set explicitly below, with a note on what it means, instead of
+%      being left at a value that contradicted the model description.
+%  (c) priors now come from priParEvalRLHT1, which has 13 columns, so parameter 13 is
+%      regularised. priParEvalRL returns only 12.
+%  (d) a flatness check runs before fmincon and refuses to fit any parameter that
+%      leaves the objective unchanged, so this class of bug cannot recur silently.
 % Text-search '(Change below for new model version)' and also check HT1lp02f and HT1ll1
 % 
 %   Fitting starts from fits of the neuroecon decision-making e.g. of HT1MAP01t 
@@ -33,26 +47,33 @@ apprStr = '11';   approvs2fit = [1,1];    % weights to place on the
     % PUT THEM IN THE SAME FOOTING.
 % More strings to use when naming outputs:
 % (Change below for new model version)
-nameStr = {'HT1fFit03Aug','13b','SO'};
+nameStr = {'HT1fFit03Aug','15','SO'};
 codeName = [nameStr{1} nameStr{2} nameStr{3}]; % name of this script or function,
     % will be used for key outputs.
 % (Change below for new model version) :
-par2fit = [2,4,5,6,7,8,11,12,13]; % parameter selection to fit in this version. See 
+par2fit = [2,3,4,5,6,7,8,11,12]; % eta, wEx, sig, wOS11, wOS12, wOS21, wOS22, E0s, E0o.
+                               % wEx is IN (it is the self-other channel fusion term, the
+                               % narcissism vs borderline discriminator) and EvBlockLR is
+                               % OUT (median SE 8.67, 1 of 30 significant). See 
                                % below for description.
 par2fitN  = length(par2fit);  % To be used for BIC
 groupParN = 0;                % params derived from whole group
 codeTesting = 0;  % if set to non-zero, use various debugging settings - see below.
 toDo = 1:30;      % which participant from the 3 Aug 26 dataset to do
-selfMod = [1,13]; % [1 is the t/DM model, 13] is the evaluations model fitted here.
+selfMod = [1,15]; % [1 is the t/DM model, 15] is the evaluations model fitted here.
 
 %% initial directory work - read in or set by hand key directories to work with
 cwd = cd;         % just a record of where all this is being run from.
 fs = filesep();   % the character that separates folders from subfolders in the filesystem.
 % directories to use, and where to to output results - see dirs.outPath below.   
-dirs = where2findHT1; % paths depending on whether Michael or somebody else (who has added to
-                      % where2findHT1) is running this.
-datdir = dirs.HT1St2MentSOres;
-cd(datdir);
+% Paths. This used to call where2findHT1, which hard-codes Michael's Dropbox tree and
+% then calls cd on it "to check it's OK", with an empty catch, so on any other machine
+% it errored before anything else could happen. Everything here is derived from the
+% folder this script sits in instead, and nothing is hard-coded.
+thisScript = which(mfilename);
+if isempty(thisScript); datdir = [cwd fs]; else; datdir = [fileparts(thisScript) fs]; end
+addpath(genpath(datdir));
+dirs.HT1St2MentSOres = datdir;   dirs.sandpit = datdir;   dirs.code = datdir;
 
 % for testing, direct outputs to a rough work, 'sandpit' directory:
 if codeTesting >= 1
@@ -67,7 +88,24 @@ elseif codeTesting == 0
 else
     error('codeTesting code encountered is not provided for');
 end
-load('HT1tFit1to30a.mat');  % provides / updates  D{}, P{}, tFit{}
+% HT1tFit03Aug01 saves these as P, D and fit, while the loop below wants p, d and
+% tFit, so accept either rather than failing on the names:
+tFitFile = [datdir 'HT1tFit1to30a.mat'];
+if ~exist(tFitFile,'file')
+    error(['%s does not exist. It is an OUTPUT of the decision-making fit, not ' ...
+           'something that ships with the code: it holds the pass-one parameters ' ...
+           'this script conditions on. Run HT1tFit03Aug01 first.'], tFitFile);
+end
+S = load(tFitFile);
+if     isfield(S,'d');     d = S.d;      elseif isfield(S,'dSave'); d = S.dSave;
+elseif isfield(S,'D');     d = S.D;
+else;  error('HT1tFit1to30a.mat holds no d, dSave or D'); end
+if     isfield(S,'p');     p = S.p;      elseif isfield(S,'pSave'); p = S.pSave;
+elseif isfield(S,'P');     p = S.P;
+else;  error('HT1tFit1to30a.mat holds no p, pSave or P'); end
+if     isfield(S,'tFit'); tFit = S.tFit;  elseif isfield(S,'fit'); tFit = S.fit;
+else;  error('HT1tFit1to30a.mat holds neither tFit nor fit'); end
+clear S;
     
 %% Form key headers for csvs, tables etc.
 % Columns headings for the output. 
@@ -99,7 +137,9 @@ feelMeasN = length(hdEval);     % max num of evaluation model params ...
 %                         *              *       *      *     *     *                  *     *      *
 % %               1       2       3      4       5      6     7     8       9     10   11   12      13    
 % %            lambda    eta     wEx    sig    wOS11 wOS12 wOS21  wOS22  lambda2  lps  E0s  E0o  EvBlockLR
-feelpInit = [    -20,    1.9,   -20,   -0.56,  0.26, 2.41,  2.41, 0.26,   -20,   -20   0     0    -0.666 ];   
+feelpInit = [    -20,    1.9,  -1.5,   -0.56,  0.26, 2.41,  2.41, 0.26,   -20,   -20   0     0     0    ];
+% wEx now starts at -1.5, i.e. invlogit ~ 0.18, rather than at -20 which is the
+% boundary and a poor place to start a parameter you intend to estimate.   
 feelpInit = feelpInit(par2fit);
 
 %% Extract decision making, i.e. _t_ reat-each-other data from fit24f _t_                 
@@ -150,6 +190,9 @@ for ptN=1:totPtN
     if rcondH > 1e-8 && isfinite(abs(rcondH))
         covMat = d{ptN}.tHess \ eye(size(d{ptN}.tHess));
         se = sqrt(diag(covMat));
+        try
+            se(d{ptN}.tFixed) = NaN;  % prevu and SPartu were held fixed, so their entries
+        end                           % in the embedded Hessian are placeholders, not SEs.
     else
         warning('Inverting the Hessian failed, so leaving SEs as NaN');
     end
@@ -186,7 +229,10 @@ mslf2 = {};
 try 
   psPr.evalRL0;  
 catch
-  [psPr.evalRL0, ~] = priParEvalRL; 
+  [psPr.evalRL0, ~] = priParEvalRLHT1;  % 13 columns. priParEvalRL returns 12, which
+end                                     % leaves EvBlockLR with no prior at all.
+if size(psPr.evalRL0,2) < 13
+    error('psPr.evalRL0 has %d columns, need 13. Use priParEvalRLHT1.', size(psPr.evalRL0,2));
 end
 
 
@@ -207,12 +253,14 @@ for ptN= toDo
       try              % ...  which we will now check for and if necessary fill in:   
             P.rowPolComb;
       catch
-            P.rowPolComb = basicP.rowPolComb;        P.rowPolS = basicP.rowPolS;
-            % REM below lind stands for 'linear indices'
-            P.lindPC = basicP.lindPC;                P.lindPS =  basicP.lindPS;
+            % was: P.rowPolComb = basicP.rowPolComb; etc., but basicP is never defined
+            % anywhere in this script, so if the try ever failed the catch threw its own
+            % undefined-variable error on top. Rebuild the deterministic task quantities.
+            warning(['P.rowPolComb missing for pt ' num2str(ptN) ', rebuilding via prepParHT1']);
+            P = prepParHT1(P);
       end
       % Change below for new model version :
-      P.selfMod = [1,13];  % ,1] would be original decision model = 1,
+      P.selfMod = selfMod;  % [1,15]. ,1] would be original decision model = 1,
                            %  RLish eval model is 3, 7, 10 etc.
       P.synth = [0,0];     % Explicitly say that we don't simulate feelings data.
       
@@ -224,8 +272,31 @@ for ptN= toDo
       % The following line contains all the important defaults. The to-be-fitted
       % will ofc be replaced within the likelihood fn, e.g. HT1lp02f
       % (Change below for new model version) :
+      % Values for every entry NOT in par2fit. Entries that ARE in par2fit get
+      % overwritten inside HT1lp02f, so their value here does not matter.
+      % Entry 9 is lambda2: -20 gives invlogit ~ 0, evaluations track RETURNS;
+      %                     +20 gives invlogit ~ 1, evaluations track PREDICTION ERRORS.
+      % 13b as originally run had +20, i.e. a PE fit, despite model 13 being documented
+      % as the returns one. Pick one on purpose and say so in nameStr.
+      lambda2Transf = -20;   % <<< THE returns / PE switch. -20 returns, +20 PE.
       % TRANSF lambda  eta wEx sig  wOS11  wOS12 wOS21  wOS22 lambda2 lps E0s E0o EvBlockLR 
-      pS.evalRL  =[-20,1.9,-20,-0.56, 0.26, 2.41, 2.41,  0.26, 20,   -20,  0,  0, -1.4];  
+      pS.evalRL  =[-20,1.9,-20,-0.56, 0.26, 2.41, 2.41,  0.26, lambda2Transf, -20, 0, 0, -1.4];  
+      % Sanity check that the free and fixed index sets partition 1:13:
+      parFixed = setdiff(1:13, par2fit);
+      if ~isequal(sort([par2fit parFixed]), 1:13); error('par2fit does not partition 1:13'); end
+      % Health warning on the returns / PE contrast. lambda, entry 1, is fixed at
+      % invlogit(-20) ~ 2e-9, so the return expectation never moves off its initial
+      % value R0. The prediction error is then Ret - R0, a constant offset from Ret, and
+      % that offset is absorbed exactly by the free intercept E0. Verified numerically:
+      % lambda2 = 1 and lambda2 = 0 with E0 shifted by -Wr*R0 give the same log
+      % likelihood to eight decimal places. So with lambda fixed, 'returns based' and
+      % 'PE based' are the SAME model with a reparameterised intercept, and comparing
+      % them is not a model comparison. To make the contrast real, free lambda:
+      %     par2fit = [1,2,4,5,6,7,8,11,12,13];
+      if ~ismember(1,par2fit) && ismember(11,par2fit) && ismember(12,par2fit)
+          warning(['lambda is fixed while E0s and E0o are free, so lambda2 is not ' ...
+                   'identifiable and the returns/PE label is cosmetic. See comment above.']);
+      end
       
       mLP = @(feelp)HT1lp02f( feelp, pS, D, P, psPr, approvs2fit, details);
       % boring: have to specify empty 'linear constraints' in order to get to 
@@ -234,16 +305,37 @@ for ptN= toDo
       % NB fit will take place in transformed space, hence the values of lower and upper bounds.
       % first row has upper bounds for feelp, second has lower. Maximally,
       %prHd={'lambda','eta','wEx','sig','wOS11','wOS12','wOS21','wOS22','lambda2','lps','E0s','E0o','EvBlockLR'};
-      Bounds =[[ 10,    10,    10,  5,   20       20,    20,      20,      10      10    20    20      10] ; ... 
-               [-10,   -10,   -10, -5,  -20      -20,   -20,     -20,     -10     -10   -20   -20     -10]];   
+      Bounds =[[ 10,    10,    10,   5,   20,     20,    20,     20,      10,     10,   20,   20,     10] ; ... 
+               [-10,   -10,   -10,  -5,  -20,    -20,   -20,    -20,     -10,    -10,  -20,  -20,    -10]];   
+      % (two commas were missing on those rows: inside brackets MATLAB treats the gap
+      %  as a separator anyway, so it parsed, but it is one typo away from not doing.)
       ub = Bounds(1,par2fit);  % Only these variables are optimized in version 03Aug13bBoth
       lb = Bounds(2,par2fit);  % Only these variables are optimized in version 03Aug13bBoth
       
       try
+          %% Flatness check. A free parameter that does not move the objective is not
+          % merely unidentifiable: it puts an exactly zero row and column in the
+          % Hessian, so rcond is 0 and EVERY standard error comes back NaN. This is
+          % what evalRL(13) was doing. Cheap to check, so check every time.
+          fdH = 1e-4;  fdG = nan(1,par2fitN);
+          for kPar = 1:par2fitN
+              tp = feelpInit; tp(kPar) = tp(kPar) + fdH;
+              tm = feelpInit; tm(kPar) = tm(kPar) - fdH;
+              fdG(kPar) = (mLP(tp) - mLP(tm)) / (2*fdH);
+          end
+          deadPar = hdEval(par2fit(abs(fdG) < 1e-9));
+          disp('  d(objective)/d(param) at the start point:');
+          for kPar = 1:par2fitN
+              disp(sprintf('    %-10s %12.4e', hdEval{par2fit(kPar)}, fdG(kPar))); %#ok<*DSPS>
+          end
+          if ~isempty(deadPar)
+              error(['These free parameters leave the objective unchanged: ' ...
+                      strjoin(deadPar,', ') '. Fix the model before fitting.']);
+          end
 
           %% Crucial optimization call ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
           % (Change below for new model version)
-          disp(['Now fitting pt ',num2str(ptN) ' using fmincon, ' codeName ', for eta,sig,wOS11,wOS12,wOS21,wOS22,E0s,E0o,EvBlockLR']);
+          disp(['Now fitting pt ',num2str(ptN) ' using fmincon, ' codeName ', for ' strjoin(hdEval(par2fit),',')]);
           [feelpOpt, mmLL,~, output, ~, ~, hessian] = fmincon(mLP, feelpInit, A, b, Aeq, beq,lb,ub );
           %% ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         
@@ -270,14 +362,20 @@ for ptN= toDo
           % Calculate BIC, with correction for group-wide params.
           %   Note this assumes all pts had same number of trials, which
           %   isn't strictly true, but is approximately true (only first two had slightly different):
+          % n is the number of RATINGS entering sllf, which is two per trial, the
+          % satisfaction one and the trust one, not one per trial:
+          nRatings = 2*sum(P.trN);
           BICnN = -2*sum(mslf2{ptN}.sllf(1:2)) + ...       % deliberately not sllt here ! 
-                  + par2fitN * (log(sum(P.trN))) + ...   % was  + par2fitN *(log(p.trN) - log(2*pi)) + ...
+                  + par2fitN * (log(nRatings)) + ...   % was + par2fitN*(log(sum(P.trN))) + ...
                   + (groupParN / totPtN)  * log (grandTrN);
 
           fitHT1TBF{ptN,string(hdEval)} = feelP;
           % REM hdEvalFit = {'slpf','sllSf','sllOf','BICf','sllt','slpt','BICt',};
 
-          fitHT1TBF{ptN,string(hdEvalFit(1:5))} = [mslf2{ptN}.mpostf, ...
+          % mpostf is MINUS the sum log posterior while the column is called slpf, so
+          % negate it and the column means what its name says. Sign differs from the
+          % csv files produced before Aug 26.
+          fitHT1TBF{ptN,string(hdEvalFit(1:5))} = [-mslf2{ptN}.mpostf, ...
                  mslf2{ptN}.sllf(1:2), BICnN, mslf2{ptN}.sllt]; 
       catch
           warning(['fmincon MAP fitting failed for pt ' num2str(ptN)]);
@@ -297,6 +395,9 @@ for ptN= toDo
 
 end
 
-warning([fitName ' done. , with NO group params - IS THIS OK?']); 
+disp([fitName ' done, with NO group params.']);
+nBadHess = sum(~isfinite(errHT1TBF.fRCondHess) | errHT1TBF.fRCondHess <= 1e-8);
+disp(['Hessians too ill-conditioned to invert: ' num2str(nBadHess) ' of ' num2str(totPtN) ...
+      '. Their standard errors are NaN and should not be used.']);
 cd(cwd)
 

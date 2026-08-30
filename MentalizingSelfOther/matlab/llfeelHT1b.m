@@ -46,6 +46,17 @@ try
 catch
     E0s = 0; E0o = 0;
 end
+% FIX 1 of 2 (OZ, Aug 26). evalRL(13), EvBlockLR, is the evaluation-model analogue of
+% ps.blockLR in llSpolHT1 line 253. It was fitted by HT1fFit* and reported, but never
+% read here, so it did not enter the likelihood. The objective was then exactly flat
+% along that coordinate, which makes the Hessian exactly singular, which is why
+% sqrt(diag(inv(H))) returned NaN for EVERY parameter and not only for this one.
+% It is used further down, at the start of each new Helper block.
+try  evBlockLR = invlogit(ps.evalRL(13));  catch  evBlockLR = 0;  end
+if ~isfinite(evBlockLR); evBlockLR = 0; end
+% FIX 2 of 2. Set P.evalInitVer = 1 to restore the old trial-1 initialisation and
+% reproduce earlier fits exactly. Default 2 is the corrected one, see below.
+try  evalInitVer = P.evalInitVer;  catch  evalInitVer = 2;  end
 
 % Useful constant matrices, as the update will be 
 % E(:,tr) = Wx*E(:,tr-1) + Wr*r(:,tr) ;
@@ -91,6 +102,7 @@ if v.trial == 1
     if blN == 1
         D.RLEval = {};
         D.meanRLEval = {}; 
+        D.RLEvalEnd = [];   % evaluative state at the end of the previous Helper
     end
     % Make space in the data structure for an array with 
     % reinforcement learning variables of Evaluation. Headings:
@@ -111,17 +123,39 @@ if v.trial == 1
    %  p.ret is indexed (myWork, yourWork, me or you, settingLev) :
    %  In HT1, p.ret(:,:,1,1) are the returns of self (help-seeker), 
    %      and p.ret(:,:,2,1) for Partner/ Helper / Other
-   D.RLEval{blN}(1,4:5) = P.ret(SAct0,OAct0,1:2,v.settingLev) / Z;
+   RetExp0 = reshape(P.ret(SAct0,OAct0,1:2,v.settingLev),[1,2]) / Z;
    
-   % Set the initial value of the evaluation as if the 
-   % return above was a known equilibrium, with no prediction error:
-   % (sadly the D.RLEval is in row vector form, the RHS below is 
-   % naturally a col vec :/ , hence the transpositions...)
-   % (line below is matlab faster version of 
-   %  D.RLEval{blN}(1,2:3) = ( inv([[1 0]; [0 1]] - Wx) * Wr  *(1-lambda2)* D.RLEval{blN}(1,4:5)' )' ;    )
-   D.RLEval{blN}(1,2:3)    = (   (([[1 0]; [0 1]] - Wx) \ Wr )*([E0s; E0o] + (1-lambda2)* D.RLEval{blN}(1,4:5)') )' ; 
+   % Set the initial value of the evaluation as if the return above were a known
+   % equilibrium, with no prediction error. That means it must be the stationary
+   % point of the update further down, which is
+   %      E  = [E0s;E0o] + Wx*E + Wr*((1-lambda2)*Ret + lambda2*PE) ,
+   % so with PE = 0 and Ret = RetExp0 the fixed point is
+   %      E* = (I - Wx) \ ( [E0s;E0o] + (1-lambda2)*Wr*RetExp0 ) .
+   % The old line premultiplied [E0s;E0o] by Wr, which the update does not do. That
+   % is harmless while E0s = E0o = 0, but from model 10 onwards they are freely
+   % fitted, and then trial 1 of every block starts off the fixed point: with
+   % E0 = [0.5,-0.3] and the other params at their usual starting values, E(1) is
+   % [-0.59,1.13] and jumps to [0.42,-0.15] on the very next trial, a move of over
+   % one unit on a scale whose response noise sig is about 0.57. That transient gets
+   % absorbed into the E0 and eta estimates.
+   I2 = [[1 0]; [0 1]];
+   if evalInitVer == 1     % old expression, kept so earlier fits can be reproduced
+       D.RLEval{blN}(1,2:3) = ( ((I2 - Wx) \ Wr) * ([E0s; E0o] + (1-lambda2)*RetExp0') )' ;
+   else
+       D.RLEval{blN}(1,2:3) = ( (I2 - Wx) \ ([E0s; E0o] + (1-lambda2)*(Wr*RetExp0')) )' ;
+   end
+   D.RLEval{blN}(1,4:5) = RetExp0;
    
-   D.meanRLEval = nan(1,length(D.RLEvalHd)); % will hold means for trials 1-end
+   % EvBlockLR at last does something. Same rule as llSpolHT1 line 253 for beliefs
+   % about the Other's C map: the starting point with a new Helper is a mixture of
+   % the naive one and the state reached with the previous Helper. evBlockLR = 0
+   % reproduces the old behaviour exactly, i.e. every Helper met with a clean slate.
+   if blN > 1 && isstruct(D.RLEvalEnd)
+       D.RLEval{blN}(1,2:3) = (1-evBlockLR)*D.RLEval{blN}(1,2:3) + evBlockLR*D.RLEvalEnd.Eval;
+       D.RLEval{blN}(1,4:5) = (1-evBlockLR)*D.RLEval{blN}(1,4:5) + evBlockLR*D.RLEvalEnd.RetExp;
+   end
+   
+   D.meanRLEval{blN} = nan(1,length(D.RLEvalHd)); % will hold means for trials 1-end
 end
 
 %% Retrieve actions of self and other, and resulting returns:
@@ -186,9 +220,13 @@ if fSynth   % Then create new v.nfeel - otherwise they  have
     D.RLEval{blN}(v.trial+1,11) = ll(2);   % col llSimOev
 end
 
-%% if at last trial, also record the means:
+%% if at last trial, record the means, and the end state to hand to the next Helper.
+%  D.meanRLEval is now indexed by block: it used to be overwritten each time, so only
+%  the last Helper's means survived.
 if v.trial == P.trN(blN)
-    D.meanRLEval = mean(D.RLEval{blN}(2:(P.trN(blN)+1),:)); 
+    D.meanRLEval{blN} = mean(D.RLEval{blN}(2:(P.trN(blN)+1),:)); 
+    D.RLEvalEnd.Eval   = D.RLEval{blN}(v.trial+1,2:3);
+    D.RLEvalEnd.RetExp = D.RLEval{blN}(v.trial+1,4:5);
 end
 return;  % end of whole function.
 

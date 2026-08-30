@@ -19,8 +19,16 @@ elseif isfield(ps,'evalRL')  % if we are fitting model with evalRL
     natP = [invlogit(ps.evalRL(1:3)),exp(ps.evalRL(4)),ps.evalRL(5:8),invlogit(ps.evalRL(9:10)),...
             ps.evalRL(11:12)];  % DO NOT WRITE :end) HERE - code defensively in case ps.evalRL is 
                                 % the wrong length etc.
-    lpri.evalRL = log( dbetasc(natP,psPr.evalRL0(1,:),psPr.evalRL0(2,:),...
-                                    psPr.evalRL0(3,:),psPr.evalRL0(4,:)));
+    % evalRL(13), EvBlockLR, is a learning rate on the unit interval like the others,
+    % so give it a prior whenever the parameter and a prior column for it both exist.
+    % priParEvalRL returns only 12 columns (its prHd lists 12 names), so use
+    % priParEvalRLHT1, which returns 13, if you want parameter 13 regularised.
+    if length(ps.evalRL) >= 13 && size(psPr.evalRL0,2) >= 13
+        natP = [natP, invlogit(ps.evalRL(13))];
+    end
+    nP = length(natP);
+    lpri.evalRL = log( dbetasc(natP,psPr.evalRL0(1,1:nP),psPr.evalRL0(2,1:nP),...
+                                    psPr.evalRL0(3,1:nP),psPr.evalRL0(4,1:nP)));
     slPri = sum(lpri.evalRL) ;                           
 else
     error('This form of ps is missing all fields catered for so far.')
