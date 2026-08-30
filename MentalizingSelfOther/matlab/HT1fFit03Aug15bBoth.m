@@ -1,14 +1,14 @@
-% script HT1fFit03Aug13bBoth
+% script HT1fFit03Aug15bBoth
 % 
 % To fit person-evaluation ratings, given the interactive behaviour (decision making)
 % for the Prolific 03Aug26 Helping Task (HT1) dataset (which has no Other->Self ratings).
 %
-% Version 13  uses an exponential Returns kernel / autoregressive RL approach, and
+% Version 15  uses an exponential Returns kernel / autoregressive RL approach, and
 %             includes a constant intercept E0 = [E0self,E0other]' as well as 
 %             allowing Self Ret -> Oeval to be different than vice versa, and wOS22 
 %             not constrained to 0 but freely fitted too.
 %
-% Fixed Aug 26 (OZ), four things:
+% Improved or fixed Aug 26 (OZ), four things:
 %  (a) evalRL(13) EvBlockLR now enters the likelihood, see llfeelHT1b. It used to be
 %      fitted and reported without being read, so fmincon returned the starting value
 %      untouched and the Hessian had an exactly zero row and column. That is why ALL
