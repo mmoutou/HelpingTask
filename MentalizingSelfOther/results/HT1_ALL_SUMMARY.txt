@@ -1,0 +1,184 @@
+[Warning: Column headers from the file were modified to make them valid MATLAB identifiers before creating variable
+names for the table. The original column headers are saved in the VariableDescriptions property.
+Set 'VariableNamingRule' to 'preserve' to use the original column headers as table variable names.] 
+================================================================
+  EVERY CORRELATION
+================================================================
+merged n           : 27
+model measures     : 27
+questionnaire vars : 90 (scales, facets and raw items)
+ 
+TOTAL TESTS: 2430
+  p<.05  Pearson  121 observed, 121.5 expected by chance
+  p<.01  Pearson   23 observed,  24.3 expected
+  p<.001 Pearson    1 observed,   2.4 expected
+  p<.05  Spearman 122 observed
+  surviving FDR q<.05: 0
+ 
+If the observed count does not exceed the expected count, nothing below is a
+finding. It is a list of effect-size estimates for powering the next study.
+ 
+---- ROBUST: p<.05 on BOTH Pearson and Spearman ----------------
+model          scale                           r         p      rho         p
+sllSelf        item_MentS05               -0.627    0.0005   -0.637    0.0003
+sllSelf        item_LPFS09                -0.582    0.0014   -0.596    0.0010
+wOS22          PID_Rigidity                0.573    0.0018    0.495    0.0086
+allocTrust     item_PID10                  0.572    0.0018    0.509    0.0067
+wOS22          item_PID10                  0.570    0.0019    0.491    0.0094
+allocTrust     PID_Rigidity                0.568    0.0020    0.501    0.0078
+magTrust       item_SAPAS05                0.566    0.0021    0.521    0.0053
+BIC            item_MentS05                0.560    0.0024    0.518    0.0056
+absAsym        PID_Manipulative           -0.553    0.0028   -0.569    0.0020
+magSelf        PID_Manipulative           -0.526    0.0049   -0.553    0.0028
+sllOther       item_PID04                 -0.524    0.0050   -0.491    0.0092
+magSelf        item_PID02                 -0.519    0.0055   -0.523    0.0051
+absAsym        item_MentS02                0.517    0.0057    0.579    0.0015
+BIC            item_LPFS09                 0.513    0.0062    0.523    0.0051
+absAsym        item_LPFS03                -0.513    0.0062   -0.542    0.0035
+absAsym        PID_Antagonism             -0.510    0.0066   -0.543    0.0034
+wOS12          item_SAPAS06               -0.506    0.0071   -0.573    0.0018
+E0s            PID_Manipulative            0.499    0.0081    0.453    0.0177
+sllSelf        item_PID23                 -0.498    0.0081   -0.473    0.0127
+absAsym        item_PID17                 -0.496    0.0085   -0.528    0.0046
+wOS21          PID_Rigidity               -0.490    0.0094   -0.401    0.0384
+absAsym        LPFS_Self                  -0.486    0.0101   -0.551    0.0029
+E0s            PID_Antagonism              0.486    0.0102    0.418    0.0301
+magTrust       item_PID27                  0.485    0.0104    0.455    0.0171
+wOS22          item_PID20                  0.485    0.0104    0.425    0.0270
+absAsym        item_LPFS01                -0.481    0.0111   -0.530    0.0044
+D              item_SAPAS06               -0.479    0.0115   -0.500    0.0079
+allocSelf      item_SAPAS06               -0.479    0.0115   -0.500    0.0079
+sllSelf        item_PID07                 -0.479    0.0116   -0.488    0.0099
+meanCarry      item_SAPAS07               -0.478    0.0117   -0.456    0.0169
+magSelf        item_SAPAS06               -0.478    0.0117   -0.458    0.0162
+allocTrust     item_PID20                  0.473    0.0128    0.413    0.0321
+sllSelf        item_PID28                 -0.460    0.0158   -0.409    0.0340
+E0s            item_PID17                  0.459    0.0162    0.464    0.0148
+sllSelf        PID_Impulsivity            -0.458    0.0163   -0.449    0.0187
+D              item_MentS02                0.456    0.0168    0.472    0.0129
+allocSelf      item_MentS02                0.456    0.0168    0.472    0.0129
+absAsym        item_PID20                 -0.456    0.0169   -0.440    0.0217
+E0s            item_PID12                  0.456    0.0169    0.434    0.0236
+BIC            PID_Manipulative            0.454    0.0174    0.440    0.0215
+E0s            item_LPFS07                 0.446    0.0196    0.382    0.0495
+E0s            item_LPFS03                 0.445    0.0201    0.485    0.0104
+meanH          item_PID19                  0.444    0.0204    0.544    0.0034
+wOS22          item_PID15                  0.444    0.0204    0.440    0.0217
+wOS12          item_MentS02                0.444    0.0204    0.487    0.0100
+sllSelf        item_LPFS07                -0.440    0.0217   -0.485    0.0104
+magSelf        PID_Antagonism             -0.436    0.0231   -0.460    0.0157
+sllSelf        PID_Deceitful              -0.434    0.0237   -0.423    0.0279
+BIC            item_PID04                  0.430    0.0253    0.391    0.0436
+magSelf        SAPAS_total                -0.429    0.0257   -0.456    0.0169
+absAsym        item_PID02                 -0.428    0.0258   -0.462    0.0152
+BIC            PID_Deceitful               0.428    0.0260    0.403    0.0369
+BIC            item_PID07                  0.427    0.0263    0.413    0.0325
+wOS21          item_MentS07               -0.425    0.0271   -0.431    0.0247
+E0s            item_LPFS01                 0.424    0.0276    0.449    0.0188
+magSelf        item_LPFS03                -0.423    0.0278   -0.456    0.0169
+endH           item_SAPAS03                0.420    0.0293    0.406    0.0356
+allocTrust     item_PID15                  0.419    0.0295    0.407    0.0354
+wOS11          item_LPFS01                 0.419    0.0296    0.437    0.0226
+meanCarry      item_LPFS01                -0.417    0.0304   -0.413    0.0322
+meanCarry      item_LPFS04                -0.411    0.0331   -0.392    0.0430
+wOS11          item_MentS02               -0.411    0.0332   -0.396    0.0408
+magSelf        item_MentS05               -0.411    0.0332   -0.406    0.0354
+absAsym        item_LPFS08                -0.410    0.0336   -0.410    0.0337
+absAsym        LPFS_total                 -0.409    0.0342   -0.390    0.0445
+sllSelf        PID_Manipulative           -0.405    0.0360   -0.392    0.0432
+meanH          item_SAPAS03                0.402    0.0377    0.427    0.0263
+wOS22          item_LPFS06                 0.402    0.0379    0.389    0.0449
+wOS12          PID_SepInsecurity          -0.402    0.0379   -0.420    0.0293
+absAsym        item_SAPAS01               -0.402    0.0379   -0.435    0.0235
+absAsym        item_PID08                 -0.400    0.0385   -0.425    0.0273
+wOS12          SAPAS_total                -0.398    0.0398   -0.434    0.0236
+absAsym        item_LPFS06                -0.396    0.0407   -0.464    0.0147
+absAsym        SAPAS_total                -0.396    0.0407   -0.398    0.0395
+allocTrust     item_LPFS06                 0.395    0.0412    0.382    0.0491
+sllOther       PID_Manipulative           -0.394    0.0420   -0.432    0.0243
+absAsym        item_PID11                 -0.394    0.0422   -0.482    0.0109
+E0diff         item_PID27                  0.392    0.0433    0.401    0.0383
+absAsym        item_PID12                 -0.386    0.0469   -0.407    0.0352
+magTrust       item_PID14                  0.385    0.0471    0.384    0.0483
+D              item_LPFS01                -0.385    0.0476   -0.385    0.0474
+allocSelf      item_LPFS01                -0.385    0.0476   -0.385    0.0474
+absAsym        PID_Deceitful              -0.383    0.0485   -0.468    0.0138
+wOS12          item_PID26                 -0.382    0.0492   -0.440    0.0215
+absAsym        item_LPFS02                -0.381    0.0500   -0.397    0.0403
+ 
+---- hits (p<.05 on either) per MODEL measure -------------------
+  absAsym         26 hits of  90 (expect  4.5)   max|r| 0.553
+  E0s             15 hits of  90 (expect  4.5)   max|r| 0.499
+  sllSelf         13 hits of  90 (expect  4.5)   max|r| 0.627
+  magSelf         12 hits of  90 (expect  4.5)   max|r| 0.526
+  BIC             11 hits of  90 (expect  4.5)   max|r| 0.560
+  wOS12           10 hits of  90 (expect  4.5)   max|r| 0.506
+  wOS22           10 hits of  90 (expect  4.5)   max|r| 0.573
+  D                8 hits of  90 (expect  4.5)   max|r| 0.479
+  allocSelf        8 hits of  90 (expect  4.5)   max|r| 0.479
+  allocTrust       8 hits of  90 (expect  4.5)   max|r| 0.572
+  sllOther         7 hits of  90 (expect  4.5)   max|r| 0.524
+  wOS21            6 hits of  90 (expect  4.5)   max|r| 0.504
+  magTrust         4 hits of  90 (expect  4.5)   max|r| 0.566
+  meanCarry        4 hits of  90 (expect  4.5)   max|r| 0.478
+  meanH            4 hits of  90 (expect  4.5)   max|r| 0.444
+  E0diff           3 hits of  90 (expect  4.5)   max|r| 0.392
+  endH             2 hits of  90 (expect  4.5)   max|r| 0.420
+  meanKL           2 hits of  90 (expect  4.5)   max|r| 0.385
+  wOS11            2 hits of  90 (expect  4.5)   max|r| 0.419
+  E0o              1 hits of  90 (expect  4.5)   max|r| 0.373
+  eta              1 hits of  90 (expect  4.5)   max|r| 0.333
+  wEx              1 hits of  90 (expect  4.5)   max|r| 0.383
+  ZERO hits: asymKL, meanBC, meanSwing, pTrialsSplit, sig
+ 
+---- hits per SCALE FAMILY -------------------------------------
+  LPFS_       4 hits of   81 tests (expect   4.0)
+  SAPAS_      6 hits of   27 tests (expect   1.4)
+  PID_       39 hits of  540 tests (expect  27.0)
+  MentS_      2 hits of  108 tests (expect   5.4)
+  item_     107 hits of 1674 tests (expect  83.7)
+ 
+---- top 40 by Pearson p ---------------------------------------
+model          scale                           r         p      rho         p     qFDR
+sllSelf        item_MentS05               -0.627    0.0005   -0.637    0.0003    0.719
+sllSelf        item_LPFS09                -0.582    0.0014   -0.596    0.0010    0.719
+wOS22          PID_Rigidity                0.573    0.0018    0.495    0.0086    0.719
+allocTrust     item_PID10                  0.572    0.0018    0.509    0.0067    0.719
+wOS22          item_PID10                  0.570    0.0019    0.491    0.0094    0.719
+allocTrust     PID_Rigidity                0.568    0.0020    0.501    0.0078    0.719
+magTrust       item_SAPAS05                0.566    0.0021    0.521    0.0053    0.719
+BIC            item_MentS05                0.560    0.0024    0.518    0.0056    0.719
+absAsym        PID_Manipulative           -0.553    0.0028   -0.569    0.0020    0.747
+magSelf        PID_Manipulative           -0.526    0.0049   -0.553    0.0028    0.813
+sllOther       item_PID04                 -0.524    0.0050   -0.491    0.0092    0.813
+magSelf        item_PID02                 -0.519    0.0055   -0.523    0.0051    0.813
+absAsym        item_MentS02                0.517    0.0057    0.579    0.0015    0.813
+BIC            item_LPFS09                 0.513    0.0062    0.523    0.0051    0.813
+absAsym        item_LPFS03                -0.513    0.0062   -0.542    0.0035    0.813
+absAsym        PID_Antagonism             -0.510    0.0066   -0.543    0.0034    0.813
+wOS12          item_SAPAS06               -0.506    0.0071   -0.573    0.0018    0.813
+wOS21          item_PID10                 -0.504    0.0074   -0.367    0.0599    0.813
+E0s            PID_Manipulative            0.499    0.0081    0.453    0.0177    0.813
+sllSelf        item_PID23                 -0.498    0.0081   -0.473    0.0127    0.813
+wOS22          PID_Anankastia              0.496    0.0085    0.372    0.0559    0.813
+absAsym        item_PID17                 -0.496    0.0085   -0.528    0.0046    0.813
+wOS21          PID_Rigidity               -0.490    0.0094   -0.401    0.0384    0.813
+absAsym        LPFS_Self                  -0.486    0.0101   -0.551    0.0029    0.813
+E0s            PID_Antagonism              0.486    0.0102    0.418    0.0301    0.813
+magTrust       item_PID27                  0.485    0.0104    0.455    0.0171    0.813
+wOS22          item_PID20                  0.485    0.0104    0.425    0.0270    0.813
+wOS12          PID_Manipulative           -0.482    0.0109   -0.368    0.0593    0.813
+absAsym        item_LPFS01                -0.481    0.0111   -0.530    0.0044    0.813
+allocTrust     PID_Anankastia              0.480    0.0114    0.375    0.0541    0.813
+D              item_SAPAS06               -0.479    0.0115   -0.500    0.0079    0.813
+allocSelf      item_SAPAS06               -0.479    0.0115   -0.500    0.0079    0.813
+sllSelf        item_PID07                 -0.479    0.0116   -0.488    0.0099    0.813
+meanCarry      item_SAPAS07               -0.478    0.0117   -0.456    0.0169    0.813
+magSelf        item_SAPAS06               -0.478    0.0117   -0.458    0.0162    0.813
+wOS21          item_MentS08               -0.476    0.0122   -0.190    0.3435    0.822
+allocTrust     item_PID20                  0.473    0.0128    0.413    0.0321    0.838
+sllSelf        item_PID28                 -0.460    0.0158   -0.409    0.0340    0.935
+E0s            item_PID17                  0.459    0.0162    0.464    0.0148    0.935
+sllSelf        PID_Impulsivity            -0.458    0.0163   -0.449    0.0187    0.935
+ 
+Written: HT1_ALL_CORRELATIONS.csv, HT1_ALL_SUMMARY.txt
