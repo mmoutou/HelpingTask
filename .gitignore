@@ -3,4 +3,5 @@
 # macOS Finder metadata
 .DS_Store
 
+# R histoy log
 .Rhistory
