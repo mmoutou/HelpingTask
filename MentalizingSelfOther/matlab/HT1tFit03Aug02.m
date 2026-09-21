@@ -1,15 +1,33 @@
-% HT1tFit03Aug01.m: Script, not function, to fit a toDo range of data, decisions only, 
-% from 03Aug26 Prolific pts,Helping Task. See subesquent versions for conditional blocks
-% to get best-fit Hessian and simulated data.
+% HT1tFit03Aug02.m: Script, not function, to fit a toDo range of data, decisions only, 
+% from 03Aug26 Prolific pts, Helping Task. 
+% version b, i.e. ...03Aug02, Using informative priors for prevu and SPartu.
+%         See line thisFitVer = ...
+% See subesquent versions for conditional blocks
+% to get best-fit Hessian *and simulated data* .
 
 toDo = 1:30;     % all participants. Was 26:30.
 
-thisFitVer = [num2str(toDo(1)) 'to' num2str(toDo(end)) 'a'];
+thisFitVer = [num2str(toDo(1)) 'to' num2str(toDo(end)) 'b'];
 thisFitStr = ['HT1tFit' thisFitVer];    % to store outputs etc.
 write2disk = 1;          % Was 0, so it fitted and then threw the results away.
 localDebug = 0;          % 0 = the full 864-point grid, i.e. the real MAP fit. Hours.
                          % 1 = a single grid point, minutes, useful only as a smoke test.
                          % Was 1 for the 25 Aug 26 shakedown run. Now the real thing.
+
+Nl = 4; setLevN = 1;  % In HT1, have 4 levels of choice for effort and only 1 'context' (per Other)
+psPr0.Spref0 = nan(Nl,Nl,setLevN); % Spref rows, Owrk cols, context pages, flat. 
+for o=1:Nl; for c=1:setLevN; psPr0.Spref0(:,o,c) = noisyBino(o/(1+Nl),50,4); end; end
+psPr0.prevp0 = [1.05, 1.05];  % A and B for betalike for pSucc of noisyBino describing prevPri
+[a,b] = gammaMS2ab( 2, 1);    % derive suff. stat. for gamma pdf for prevu from (mean, sd)
+psPr0.prevu0 = [a, b];        % A and B from above for gamlike for U of noisyBino describing prevPri
+psPr0.T0 = [1.5, 0.5];        % A and B for gamlike on T
+psPr0.SPartp0 = [1.05, 1.05]; 
+[a,b] = gammaMS2ab(0.1, 0.02); % v. informative suff. stat. for gamma pdf for SPartu from (mean, sd)
+                               % don't forget to adjust the search grid and ub and lb !
+psPr0.SPartu0 = [a, b];
+psPr0.blockLR0 = [1.1, 1.4];  % A and B for betalike for betaLR. Modestly discrourages very high apparent LRs.
+
+% psPr0  = [];  % If empty, HT1MAP02t below defaults to very weak priors. 
 
 % Paths derived from wherever this script lives, so nothing needs editing and there is
 % no cd into somebody else's Dropbox. Was two hard-coded ~/Dropbox/... lines plus cd.
@@ -43,7 +61,6 @@ disp(['Loaded ' num2str(numel(prolD)) ' participants from ' datFile]);
 toDo = toDo(toDo <= numel(prolD));
 
 psInit0 = []; 
-psPr0  = []; 
 fit={};  % to hold everything.
 D={};    % to hold all the d
 P={};    % to hold all the P
@@ -52,7 +69,7 @@ for ptN=toDo
 
   d = prolD{ptN}.d; 
   p = prolD{ptN}.p; 
-  [ps, slp, sll, psPr, Hess] = HT1MAP01t( d, p, psPr0, psInit0, localDebug ); 
+  [ps, slp, sll, psPr, Hess] = HT1MAP02t( d, p, psPr0, psInit0, localDebug ); 
 
   d.feelm = NaN; d.feelu=NaN;   % Make it crystal clear these have not been fit.
   d.evalRL = NaN * d.evalRL ;   %   ... ditto.
@@ -81,7 +98,6 @@ for ptN=toDo
     % Save after every fit, under BOTH naming conventions, because
     % HT1fFit03Aug13bBoth wants d, p and tFit while this script builds D, P and fit.
     dSave = D;  pSave = P;  tFit = fit;
-    save([resDir 'HT1tFit1to30a.mat'], 'dSave','pSave','tFit');
     save([resDir thisFitStr '.mat'],   'dSave','pSave','tFit','D','P','fit');
   end
 
@@ -89,8 +105,8 @@ end
 
 
 disp(' ');
-disp(['''t''reating each other fitting done, wrote ' resDir 'HT1tFit1to30a.mat']);
-disp('Next: run HT1fFit03Aug*Both');
+disp(['''t''reating each other fitting done, wrote ' resDir thisFitStr '.mat']);
+disp('Next: run HT1fFit03Aug*Both - also for csv of Hessian cond. num,, SEs, etc.');
 if localDebug
     disp('NB localDebug was 1, so a single grid point was used. Set it to 0 and rerun');
     disp('   for the real MAP fit, once you have seen the whole chain work.');

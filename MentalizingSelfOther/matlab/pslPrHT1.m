@@ -1,10 +1,10 @@
 function [slPri, lpri] = pslPrHT1(ps, psPr, p)
-%PSPRIHT1 return minus sum log priors and/or structure with component prior probs of ps under the prior psPr
+%PSLPRHT1 return minus sum log priors and/or structure with component prior probs of ps under the prior psPr
 %  Developped from pslPrIC2 . 
 %  In this version, the priors over the u parameters are over abs(u), as we want to avoid values 
 %      very near 0 but to consider both positive and negative ones otherwise.
-%   Assume independent priors over the components of ps, as per e.g.:
-% psPr :
+%   Assumes independent priors over the components of ps, whose sufficient stats are
+%      denoted by Spref0, prevp0 etc., as per e.g.:
 %  psPr.Spref0 = ones(p.Nl,p.Nl,2)/p.Nl; % Spref rows, Owrk cols, setting (context) pages, flat. 
 %  psPr.prevp0 = [1.01, 1.01];  % A and B for betapdf for pSucc of noisyBino describing prevPri
 %  psPr.prevu0 = [2.0, 2.0];    % A and B for gampdf for U of noisyBino describing prevPri
