@@ -1,15 +1,16 @@
-% script HT1fFit03Aug13bBoth
+% script HT1fFit03Aug1303Both
 % 
 % To fit person-evaluation ratings, given the interactive behaviour (decision making)
 % for the Prolific 03Aug26 Helping Task (HT1) dataset (which has no Other->Self ratings).
 %
-% Version 13  uses returns based exponential Returns kernel / autoregressive  RL approach, and
+% Version 1303    Uses returns based exponential Returns kernel / autoregressive  RL approach, and
 %             includes a constant intercept E0 = [E0self,E0other]' as well as 
 %             allowing Self Ret -> Oeval to be different than vice versa, and wOS22 
 %             not constrained to 0 but freely fitted too.
-% Text-search '(Change below for new model version)' and also check HT1lp02f and HT1ll1
+%                Version xx03 relies on discBetaMU not noisyBino 
+% Text-search '(Change below for new model version)' and also check HT1lp03f and HT1ll03
 % 
-%   Fitting starts from fits of the neuroecon decision-making e.g. of HT1MAP01t 
+%   Fitting starts from fits of the neuroecon decision-making e.g. of HT1MAP03t 
 %   (t for treating each other) 
 % To change if fitted to all data or just self data, etc.,
 % the crucial variable is approvs2fit below. 
@@ -24,10 +25,10 @@
 %  BIC_kc := -2 ln Lopt + k*ln(n/(2*pi) + (c/N)* ln (nN)
 %                             = -2 ln Lopt + k*(ln n ) + (c/N)* ln (nN)
 
-clear variables; scriptFile = 'HT1fFit03Aug13bBoth'; 
+clear variables; scriptFile = 'HT1fFit03Aug1303Both'; 
 
 %% ~~~~~~~~~~  Menu-like items ~~~~~~~~~~~~~~~~~~
-econFile = 'HT1tFit1to30c.mat';  % neuroecon 'treating each other' fits to use.
+econFile = 'HT1tFit1to30_03.mat';  % neuroecon 'treating each other' fits to use.
 % econFile = 'HT1tFit1to30b.mat';  % neuroecon 'treating each other' fits to use.
 apprStr = '11';   approvs2fit = [1,1];    % weights to place on the 
     % log lik for self, other, and poss. other->self in summing mslf2. 
@@ -36,7 +37,7 @@ apprStr = '11';   approvs2fit = [1,1];    % weights to place on the
     % PUT THEM IN THE SAME FOOTING.
 % More strings to use when naming outputs:
 % (Change below for new model version)
-nameStr = {'HT1fFit03Aug','13b','SO'};
+nameStr = {'HT1fFit03Aug','1303','SO'};
 codeName = [nameStr{1} nameStr{2} nameStr{3}]; % name of this script or function,
     % will be used for key outputs.
 % (Change below for new model version) :
@@ -54,7 +55,7 @@ fs = filesep();   % the character that separates folders from subfolders in the 
 % directories to use, and where to to output results - see dirs.outPath below.   
 dirs = where2findHT1; % paths depending on whether Michael or somebody else (who has added to
                       % where2findHT1) is running this.
-datdir = dirs.HT1St2MentSOres;
+datdir = dirs.sandpit; % dirs.HT1St2MentSOres;
 cd(datdir);
 
 % for testing, direct outputs to a rough work, 'sandpit' directory:
@@ -66,7 +67,7 @@ if codeTesting >= 1
 elseif codeTesting == 0
     warning('NO codeTesting, full output directed to sandbox directory.');  % so outputs directed to dirs.HT1St2MentSOres.');
     outDir = dirs.sandpit; 
-    outDir = dirs.HT1St2MentSOres; 
+    % outDir = dirs.HT1St2MentSOres; 
     addpath(outDir);
 else
     error('codeTesting code encountered is not provided for');
@@ -232,12 +233,12 @@ for ptN= toDo
       pS.ID = D.PID;          % This should be the corresp. numerical ID.
       details=0; 
       % The following line contains all the important defaults. The to-be-fitted
-      % will ofc be replaced within the likelihood fn, e.g. HT1lp02f
+      % will ofc be replaced within the likelihood fn, e.g. HT1lp03f
       % (Change below for new model version) :
       % TRANSF lambda  eta wEx sig  wOS11  wOS12 wOS21  wOS22 lambda2 lps E0s E0o EvBlockLR 
       pS.evalRL  =[-20,1.9,-20,-0.56, 0.26, 2.41, 2.41,  0.26, 20,   -20,  0,  0, -1.4];  
       
-      mLP = @(feelp)HT1lp02f( feelp, pS, D, P, psPr, approvs2fit, details);
+      mLP = @(feelp)HT1lp03f( feelp, pS, D, P, psPr, approvs2fit, details);
       % boring: have to specify empty 'linear constraints' in order to get to 
       % the arguments for the lower and upper bounds, acc. to the doc fmincon example ...
       A = []; b = []; Aeq = [];  beq = [];
@@ -257,9 +258,9 @@ for ptN= toDo
           [feelpOpt, mmLL,~, output, ~, ~, hessian] = fmincon(mLP, feelpInit, A, b, Aeq, beq,lb,ub );
           %% ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         
-          % now run HT1lpf once again to return details and augment with the 
+          % now run HT1lp03f once again to return details and augment with the 
           % fit quality indices :
-          mslf2{ptN} = HT1lp02f( feelpOpt, pS, D, P, psPr, [1,1], 1); 
+          mslf2{ptN} = HT1lp03f( feelpOpt, pS, D, P, psPr, [1,1], 1); 
           mslf2{ptN}.fitOut = output;
           mslf2{ptN}.Hess = hessian;
           fRCondHess = rcond(hessian);  % Is Hessian well-conditioned ( > 1e-8)
