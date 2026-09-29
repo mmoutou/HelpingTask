@@ -23,15 +23,12 @@ for o=1:Nl
     end
 end
 psPr0.prevp0 = [1.05, 1.05];  % A and B for betalike for pSucc of noisyBino describing prevPri
-% In 02 was: [a,b] = gammaMS2ab( 2, 1);    % derive suff. stat. for gamma pdf for prevu from (mean, sd)
-% In 02 was: psPr0.prevu0 = [a, b];        % A and B from above for gamlike for U of noisyBino describing prevPri
 psPr0.prevu0 = [1.5, 1]; 
+
+psPr0.SPartp0 = [45, 10];    % Highly constrained. Uninf. is: psPr0.SPartp0 = [1.05, 1.05]; 
+psPr0.SPartu0 = [ 2, 0.04];  % check with x = 0:0.01:10; plot(x,gampdf(x,1.5,0.1)) % for less highly constrained.
+
 psPr0.T0 = [1.5, 0.5];        % A and B for gamlike on T
-psPr0.SPartp0 = [1.05, 1.05]; 
-% In 02 was: [a,b] = gammaMS2ab(0.1, 0.02); % v. informative suff. stat. for gamma pdf for SPartu from (mean, sd)
-                               % don't forget to adjust the search grid and ub and lb !
-% In 02 was: psPr0.SPartu0 = [a, b];
-psPr0.SPartu0 = [1.5, 0.1];    % check with x = 0:0.01:10; plot(x,gampdf(x,1.5,0.1))
 psPr0.blockLR0 = [1.1, 1.4];  % A and B for betalike for betaLR. Modestly discrourages very high apparent LRs.
 
 % psPr0  = [];  % If empty, HT1MAP02t below defaults to very weak priors. 
