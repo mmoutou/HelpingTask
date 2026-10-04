@@ -1,7 +1,9 @@
-function [ps, slp, sll, psPr, hessian, output] = HT1MAP03t( d, p, psPr, psInit, localdebug )
-% [ps, slp, sll, psPr, hessian, output] = HT1MAP02t( d, p, psPr, psInit ), second attempt
+function [ps, slp, sll, psPr, fitMeas] = HT1MAP03t( d, p, psPr, psInit, localdebug )
+% [ps, slp, sll, psPr, fitMeas] = HT1MAP03t( d, p, psPr, psInit ), second attempt
 %   following Orestis Zavlis work in HT1MAP01t to fix prevu and SPartu. Here rely on
-%       discBetaMU instead of noisyBino, via HT1ll03  
+%       discBetaMU instead of noisyBino, via HT1ll03, using global optimization not fmincon
+%       HT1MAP03t uses a global search, then pattersearch . Hessian not meaningful,
+%       fitMeas includes all the fit related outputs of the final optimization.
 %   Max A Posterori parameters for Helping Task, HT1, To be used by called by HT1fit*
 %   Find optimal parameters ps for one participant for contribution decisions (=t) using HT1ll2
 %         d is the expt. data, p are the parameters *of the task*, not the pt.,
@@ -32,10 +34,10 @@ end
 psbest = psInit; 
 
 % Intialize coarse grid over continuous parameters : 
-grid.prevp  = [0.05 0.45 0.85]; % [0.05 0.45 0.85];
-grid.prevu  = [0.2 1.5]; 
-grid.SPartp = [0.2  0.5  0.8];
-grid.SPartu = [0.05]; % [0.1];   % [-5 -1  1 5];
+grid.prevp  = [0.25 0.75];
+grid.prevu  = [0.15 4];     % so that it can be concave or convex
+grid.SPartp = [0.33  0.8];
+grid.SPartu =  [0.15 4]; 
 grid.T      = [0.15 1.35 4.05];  
 grid.blockLR  = [0.1 0.6];
 
@@ -126,9 +128,9 @@ for context=1:p.settingLevN
     % Check that prior is provided and calc log prior of params:
     if ~isempty(psPr); lnPrior = HT1pslPr03(ps,psPr,p); end
     % Debug line to provide detailed output acc. to setting in p, e.g. in fitHT1a :
-    try RunType.detailed = p.detailed; catch RunType.detailed =[]; end;
+    try RunType.detailed = p.detailed; catch RunType.detailed =[]; end
     newslp = HT1ll03(ps, d, p, RunType) + lnPrior;
-    if newslp > bestbslp; bestbpatt = pattn; bestbslp=newslp; end;
+    if newslp > bestbslp; bestbpatt = pattn; bestbslp=newslp; end
   end
   ps.Spref(context,:) = basepref(bestbpatt,:); 
 end
@@ -143,7 +145,7 @@ for context = fliplr(1:p.settingLevN)
        Sprbak = ps.Spref; % back up best so far
        ps.Spref(context,Owrk+1) = prf;
        % Check that prior is provided and calc log prior of params:
-       if ~isempty(psPr); lnPrior = pslPrHT1(ps,psPr,p); end;
+       if ~isempty(psPr); lnPrior = pslPrHT1(ps,psPr,p); end
        newslp = HT1ll03(ps, d, p) + lnPrior;
        % Now the other way round - restore if no improvement!
        if newslp <= bestslp2
@@ -183,26 +185,50 @@ end
 % Set ps to the best one found in grid search:
 ps = gridps;
 
-%% Now keeping ps.Spref constant, fit the continuous
+%% Now keeping ps.Spref constant, fit the continuous params
+
+%% Common to patternsearch, fmincon, etc:
 %  params:  prevp, prevu, SPartp, SPartu, T, blockLR
 restpInit = [ps.prevp, ps.prevu, ps.SPartp, ps.SPartu, ps.T, ps.blockLR];
 
-% Declare the function to be minimized by fmincon. The follwing has to be
+%    prevp, prevu, SPartp, SPartu, T,    blockLR  
+lb = [0.01,  -50,   0.01,   0.1,  0.001, 0.01];  % lower bounds for restp
+ub = [0.99,   50,   0.99,    50,   100,  0.99];  % upper bounds for same
+
+% Declare the function to be minimized by non-gradient descent. The follwing has to be
 % re-declared every time we want to do the fit, not e.g. before this loop :
 details=0; 
 mLP = @(restp)HT1lp03( restp, ps, d, p, psPr, details);
-% boring: have to specify empty 'linear constraints' in order to get to 
-% the arguments for the lower and upper bounds, acc. to the doc fmincon example ...
+% boring: Same as in fmincon, we have to specify empty 'linear constraints' in order to get
+% to the arguments for the lower and upper bounds, acc. to the doc fmincon example ...
 A = []; b = []; Aeq = [];  beq = [];
-%    prevp, prevu, SPartp, SPartu, T,    blockLR
-lb = [0.01,  -50,   0.01,   0.1,  0.001, 0.01];  % lower bounds for restp
-ub = [0.99,   50,   0.99,    50,   100,  0.99];  % upper bounds for same
-% was:
-% lb = [0.01, 0.1,0.01, 0.1,0.001];  % lower bounds for restp
-% ub = [0.99, 50, 0.99, 50, 100  ];  % upper bounds for same
-disp('Now running fmincon for prevp, prevu, SPartp, SPartu, T ...');
-[restpOpt, mmLL, ~, output, ~, ~, hessian] = ...
-    fmincon(mLP, restpInit, A, b, Aeq, beq,lb,ub );
+
+%% Specific to patternsearch:
+% boringer: For patternsearch (and others?) also provide 'non linear constraint' : 
+nonLinCon = [];
+% patternsearch optimizer options:
+psOptions = optimoptions('patternsearch', ...
+    'Display', 'iter', ...
+    'UseCompletePoll', true, ...              % May be quicker and dirtier if false.
+    'UseCompleteSearch', true, ...            % ... ditto.
+    'PollMethod', 'GSSPositiveBasis2N', ...
+    'MeshTolerance', 1e-6, ...
+    'FunctionTolerance', 1e-8, ...
+    'MaxFunctionEvaluations', 5e4, ...
+    'MaxIterations', 1e4, ...
+    'UseParallel', true);
+
+% ~~~~~~~~~~  Run the optimizer  ~~~~~~~~~~~~~~~~~
+disp('Now running optimizer for prevp, prevu, SPartp, SPartu, T ...');
+[restpOpt, mmLL, exitFlag, fitMeas] = patternsearch(mLP, restpInit, ...
+          A, b, Aeq, beq,...
+          lb,ub,...
+          nonLinCon);
+fitMeas.exitFlag = exitFlag; 
+
+% Was, when we used fmincon : 
+% [restpOpt, mmLL, ~, output, ~, ~, hessian] = ...
+%     fmincon(mLP, restpInit, A, b, Aeq, beq,lb,ub );
 
 % store and display best (so far ...) :
 ps.prevp =restpOpt(1); ps.prevu =restpOpt(2); 

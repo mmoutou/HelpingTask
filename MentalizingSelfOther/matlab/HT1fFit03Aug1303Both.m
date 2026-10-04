@@ -91,7 +91,7 @@ hdDM   = {'Spref1', 'Spref2','Spref3','Spref4','prevp','prevu',...
           'T','blockLR'};
 errHd = {'numID','lambdaSE','etaSE','wExSE','sigSE','wOS11SE',...
          'wOS12SE','wOS21SE','wOS22SE','lambda2SE','lpsSE','E0sSE','E0oSE','EvBlockLRSE','fLnRCondHess'...
-         'prevpSE','prevuSE','SPartpSE','SPartuSE','TSE','blockLRSE','tLnRCondHess','prolificID' };
+         'prevpSE','prevuSE','SPartpSE','SPartuSE','TSE','blockLRSE','tFitExitCode','prolificID' };
 fErrHd = errHd(2:14); fErrHd = fErrHd(par2fit); % for easy reference of fitted values
 
 hdf = ['numID',hdEval,hdEvalFit,hdDM];
@@ -148,24 +148,26 @@ for ptN=1:totPtN
     fitHT1TBF{ptN,'T'} = d{ptN}.T;
     fitHT1TBF{ptN,'blockLR'} = d{ptN}.blockLR;
     
-    % REM tHess variables are:
-    % [ps.prevp, ps.prevu, ps.SPartp, ps.SPartu, ps.T, ps.blockLR]
-    se = nan(size(d{ptN}.tHess,1),1);
-    % Before attempting to estimate Hessian based errors, see that it is well conditioned:
-    rcondH = rcond(d{ptN}.tHess);
-    tLnRCondH = nan; if rcondH > 0; tLnRCondH = log(rcondH); end
-    if ~isfinite(abs(rcondH)) || rcondH < 1e-8 
-        warning(['Pt.' num2str(ptN), ', t-Hessian inversion problem: Cond. N rH=' num2str(rcondH) ]);
-    end
-    try
-        covMat = d{ptN}.tHess \ eye(size(d{ptN}.tHess));
-        se = sqrt(diag(covMat));
-    catch
-        warning(['for pt.' num2str(ptN), ', Hessian inversion failed.']);
-    end
-
-    errHT1TBF{ptN,string({'prevpSE','prevuSE','SPartpSE','SPartuSE','TSE','blockLRSE'})} = se'; 
-    errHT1TBF{ptN,'tLnRCondHess'} = tLnRCondH;
+    % % REM tHess variables are:
+    % % [ps.prevp, ps.prevu, ps.SPartp, ps.SPartu, ps.T, ps.blockLR]
+    % se = nan(size(d{ptN}.tHess,1),1);
+    % % Before attempting to estimate Hessian based errors, see that it is well conditioned:
+    % rcondH = rcond(d{ptN}.tHess);
+    % tLnRCondH = nan; if rcondH > 0; tLnRCondH = log(rcondH); end
+    % if ~isfinite(abs(rcondH)) || rcondH < 1e-8 
+    %     warning(['Pt.' num2str(ptN), ', t-Hessian inversion problem: Cond. N rH=' num2str(rcondH) ]);
+    % end
+    % try
+    %     covMat = d{ptN}.tHess \ eye(size(d{ptN}.tHess));
+    %     se = sqrt(diag(covMat));
+    % catch
+    %     warning(['for pt.' num2str(ptN), ', Hessian inversion failed.']);
+    % end
+    % 
+    % errHT1TBF{ptN,string({'prevpSE','prevuSE','SPartpSE','SPartuSE','TSE','blockLRSE'})} = se'; 
+    
+    errHT1TBF{ptN,string({'prevpSE','prevuSE','SPartpSE','SPartuSE','TSE','blockLRSE'})} = nan; 
+    errHT1TBF{ptN,'tFitExitCode'} = d{ptN}.tFitMeasures.exitFlag; % was tLnRCondH;
 
 end
 

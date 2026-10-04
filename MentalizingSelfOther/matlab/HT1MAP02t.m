@@ -1,9 +1,10 @@
 function [ps, slp, sll, psPr, hessian, output] = HT1MAP02t( d, p, psPr, psInit, localdebug )
-% [ps, slp, sll, psPr, hessian, output] = HT1MAP02t( d, p, psPr, psInit ), following
-%   Orestis Zavlis work in HT1MAP01t to fix prevu and SPartu. Here instead given
-%         informative priors to obtain well-conditioned Hessian, via psPr below.
+% [ps, slp, sll, psPr, hessian, output] = HT1MAP02t( d, p, psPr, psInit ), second attempt
+%   following Orestis Zavlis work in HT1MAP01t to fix prevu and SPartu. Here rely on
+%       discBetaMU instead of noisyBino, via HT1ll03, still using fmincon.
+% 
 %   Max A Posterori parameters for Helping Task, HT1, To be used by called by HT1fit*
-%   Find optimal parameters ps for one participant for contribution decisions (=t) using HT1ll1
+%   Find optimal parameters ps for one participant for contribution decisions (=t) using HT1ll2
 %         d is the expt. data, p are the parameters *of the task*, not the pt.,
 %   psPr is the (possibly group-derived) prior, psInit is the optional
 %         value of parameters ps to start exploration from.
@@ -22,28 +23,28 @@ try localdebug;  catch  localdebug = 1;  end
 try  psInit.Spref; catch psInit.Spref=[]; end
 if isempty(psInit.Spref)
   psInit.Spref=repmat([0,1,2,3],p.settingLevN);  % will start from a 'neutral' pref
-  psInit.prevp = 0.1;  psInit.prevu=2;  % for noisyBino(0.5,2,4) for prevPri
-  psInit.prevPri = noisyBino(psInit.prevp,psInit.prevu,p.Nl); 
-  psInit.SPartp = 0.9; psInit.SPartu=1;  % ditto for SPartnPr
-  psInit.SPartnPr = noisyBino(psInit.SPartp, psInit.SPartu, p.Nl);
+  psInit.prevp = 0.1;  psInit.prevu=0.4;  % for discBetaMU for prevPri
+  psInit.prevPri = discBetaMU(psInit.prevp,psInit.prevu,p.Nl); 
+  psInit.SPartp = 0.9; psInit.SPartu=0.4;  % ditto for SPartnPr
+  psInit.SPartnPr = discBetaMU(psInit.SPartp, psInit.SPartu, p.Nl);
   psInit.T = 0.2;
   psInit.blockLR = 0.15;
 end
 psbest = psInit; 
 
 % Intialize coarse grid over continuous parameters : 
-grid.prevp  = [0.05 0.45 0.85];
-grid.prevu  = [-5 -1  1  5];
-grid.SPartp = [0.2  0.5  0.8];
-grid.SPartu = [0.1]   % [-5 -1  1 5];
+grid.prevp  = [0.25 0.75];
+grid.prevu  = [0.15 4];     % so that it can be concave or convex
+grid.SPartp = [0.33  0.8];
+grid.SPartu =  [0.15 4]; 
 grid.T      = [0.15 1.35 4.05];  
 grid.blockLR  = [0.1 0.6];
 
 if localdebug  % only one point in the grid
   grid.prevp  = [0.65]; %#ok<*NBRAK2>
-  grid.prevu  = [1];
+  grid.prevu  = [0.4];
   grid.SPartp = [0.6];
-  grid.SPartu = [1];
+  grid.SPartu = [0.1];
   grid.T      = [0.15];  
   grid.blockLR  = [0.15];
 end
@@ -54,12 +55,18 @@ try  psPr;  catch  psPr=[]; end
 if isempty(psPr)
   % Weak commonsense priors :
   psPr.Spref0 = nan(p.Nl,p.Nl,p.settingLevN); % Spref rows, Owrk cols, context pages, flat. 
-  for o=1:p.Nl; for c=1:p.settingLevN; psPr.Spref0(:,o,c) = noisyBino(o/(1+p.Nl),50,4); end; end;
-  psPr.prevp0 = [1.05, 1.05];  % A and B for betapdf for pSucc of noisyBino describing prevPri
-  psPr.prevu0 = [2.0, 1.0];    % A and B for gampdf for U of noisyBino describing prevPri
+  for o=1:p.Nl
+      for c=1:p.settingLevN
+          m = o/(1+p.Nl); 
+          u = 1.5*m*(1-m);   % empirical / by hand to make it somewhat blunt ...
+          psPr.Spref0(:,o,c) = discBetaMU(m,u,4); 
+      end
+  end
+  psPr.prevp0 = [1.05, 1.05];  % A and B for betapdf for Mean of discBetaMU describing prevPri
+  psPr.prevu0 = [1.5, 1.0];    % A and B for gampdf for U of discBetaMU describing prevPri
   psPr.T0 = [1.5, 0.5];        % A and B for gampdf on T
   psPr.SPartp0 = [1.05, 1.05]; 
-  psPr.SPartu0 = [2.0, 2.0];
+  psPr.SPartu0 = [1.5, 0.25];
   psPr.blockLR0 = [1.1, 1.4];  % A and B for betapdf for betaLR. Modestly discrourages very high apparent LRs.
 else
     try
@@ -100,11 +107,11 @@ for i1=1:length(grid.prevp)
         for i5 = 1:length(grid.T)
           for i6 = 1:length(grid.blockLR)
               psInit.prevp = grid.prevp(i1);  
-              psInit.prevu = grid.prevu(i2);  % for noisyBino(0.5,2,4) for prevPri
-              psInit.prevPri = noisyBino(psInit.prevp,psInit.prevu,p.Nl);
+              psInit.prevu = grid.prevu(i2);  % for discBetaMU for prevPri
+              psInit.prevPri = discBetaMU(psInit.prevp,psInit.prevu,p.Nl);
               psInit.SPartp = grid.SPartp(i3); 
               psInit.SPartu=  grid.SPartu(i4);  % ditto for SPartnPr
-              psInit.SPartnPr = noisyBino(psInit.SPartp, psInit.SPartu, p.Nl);
+              psInit.SPartnPr = discBetaMU(psInit.SPartp, psInit.SPartu, p.Nl);
               psInit.T = grid.T(i5);
               psInit.blockLR = grid.blockLR(i6);
               
@@ -118,10 +125,10 @@ for context=1:p.settingLevN
   for pattn = 1:basepatN
     ps.Spref(context,:) = basepref(pattn,:);
     % Check that prior is provided and calc log prior of params:
-    if ~isempty(psPr); lnPrior = pslPrHT1(ps,psPr,p); end
+    if ~isempty(psPr); lnPrior = HT1pslPr03(ps,psPr,p); end
     % Debug line to provide detailed output acc. to setting in p, e.g. in fitHT1a :
     try RunType.detailed = p.detailed; catch RunType.detailed =[]; end;
-    newslp = HT1ll1(ps, d, p, RunType) + lnPrior;
+    newslp = HT1ll03(ps, d, p, RunType) + lnPrior;
     if newslp > bestbslp; bestbpatt = pattn; bestbslp=newslp; end;
   end
   ps.Spref(context,:) = basepref(bestbpatt,:); 
@@ -138,7 +145,7 @@ for context = fliplr(1:p.settingLevN)
        ps.Spref(context,Owrk+1) = prf;
        % Check that prior is provided and calc log prior of params:
        if ~isempty(psPr); lnPrior = pslPrHT1(ps,psPr,p); end;
-       newslp = HT1ll1(ps, d, p) + lnPrior;
+       newslp = HT1ll03(ps, d, p) + lnPrior;
        % Now the other way round - restore if no improvement!
        if newslp <= bestslp2
          ps.Spref=Sprbak; 
@@ -184,7 +191,7 @@ restpInit = [ps.prevp, ps.prevu, ps.SPartp, ps.SPartu, ps.T, ps.blockLR];
 % Declare the function to be minimized by fmincon. The follwing has to be
 % re-declared every time we want to do the fit, not e.g. before this loop :
 details=0; 
-mLP = @(restp)HT1lp2( restp, ps, d, p, psPr, details);
+mLP = @(restp)HT1lp03( restp, ps, d, p, psPr, details);
 % boring: have to specify empty 'linear constraints' in order to get to 
 % the arguments for the lower and upper bounds, acc. to the doc fmincon example ...
 A = []; b = []; Aeq = [];  beq = [];
@@ -200,9 +207,9 @@ disp('Now running fmincon for prevp, prevu, SPartp, SPartu, T ...');
 
 % store and display best (so far ...) :
 ps.prevp =restpOpt(1); ps.prevu =restpOpt(2); 
-ps.prevPri=noisyBino(ps.prevp,ps.prevu,p.Nl);
+ps.prevPri=discBetaMU(ps.prevp,ps.prevu,p.Nl);
 ps.SPartp=restpOpt(3); ps.SPartu=restpOpt(4); 
-ps.SPartnPr=noisyBino(ps.SPartp,ps.SPartu,p.Nl);
+ps.SPartnPr=discBetaMU(ps.SPartp,ps.SPartu,p.Nl);
 ps.T = restpOpt(5);  % may be deliberately spewed out! 
 ps.blockLR = restpOpt(6);
 
@@ -211,7 +218,7 @@ disp(ps);
 slp = -mmLL;           % deliberately spewed out!
 disp([' final slp: ' num2str(slp)]);
 
-sll = HT1ll1(ps, d, p);
+sll = HT1ll03(ps, d, p);
 disp([' final sll: ' num2str(sll)]);
 
 return;

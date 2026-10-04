@@ -1,13 +1,13 @@
-% HT1tFit03Aug02.m: Script, not function, to fit a toDo range of data, decisions only, 
+% HT1tFit03Aug03.m: Script, not function, to fit a toDo range of data, decisions only, 
 % from 03Aug26 Prolific pts, Helping Task. 
-% version b, i.e. ...03Aug02, Using informative priors for prevu and SPartu.
+% version b, i.e. ...03Aug02, Using informative priors for 1/prevu and 1/SPartu.
 %         See line thisFitVer = ...
 % See subesquent versions for conditional blocks
 % to get best-fit Hessian *and simulated data* .
 
 toDo = 1:30;     % all participants. Was 26:30.
 
-thisFitVer = [num2str(toDo(1)) 'to' num2str(toDo(end)) 'b'];
+thisFitVer = [num2str(toDo(1)) 'to' num2str(toDo(end)) '_03'];
 thisFitStr = ['HT1tFit' thisFitVer];    % to store outputs etc.
 write2disk = 1;          % Was 0, so it fitted and then threw the results away.
 localDebug = 0;          % 0 = the full 864-point grid, i.e. the real MAP fit. Hours.
@@ -16,24 +16,32 @@ localDebug = 0;          % 0 = the full 864-point grid, i.e. the real MAP fit. H
 
 Nl = 4; setLevN = 1;  % In HT1, have 4 levels of choice for effort and only 1 'context' (per Other)
 psPr0.Spref0 = nan(Nl,Nl,setLevN); % Spref rows, Owrk cols, context pages, flat. 
-for o=1:Nl; for c=1:setLevN; psPr0.Spref0(:,o,c) = noisyBino(o/(1+Nl),50,4); end; end
+for o=1:Nl
+    for c=1:setLevN
+        m = o/(1+Nl); u = 1.5*m*(1-m); 
+        psPr0.Spref0(:,o,c) = discBetaMU(m,u,4); 
+    end
+end
 psPr0.prevp0 = [1.05, 1.05];  % A and B for betalike for pSucc of noisyBino describing prevPri
-[a,b] = gammaMS2ab( 2, 1);    % derive suff. stat. for gamma pdf for prevu from (mean, sd)
-psPr0.prevu0 = [a, b];        % A and B from above for gamlike for U of noisyBino describing prevPri
+psPr0.prevu0 = [1.5, 1]; 
+
+psPr0.SPartp0 =  [1.05, 1.05]; % [45, 10];  for highly constrained diagnostic. Uninf. is: psPr0.SPartp0 = [1.05, 1.05]; 
+psPr0.SPartu0 = [1.5 0.1]; % [2, 0.04] for diagnostic;  % check with x = 0:0.01:10; plot(x,gampdf(x,1.5,0.1)) % for less highly constrained.
+
 psPr0.T0 = [1.5, 0.5];        % A and B for gamlike on T
-psPr0.SPartp0 = [1.05, 1.05]; 
-[a,b] = gammaMS2ab(0.1, 0.02); % v. informative suff. stat. for gamma pdf for SPartu from (mean, sd)
-                               % don't forget to adjust the search grid and ub and lb !
-psPr0.SPartu0 = [a, b];
 psPr0.blockLR0 = [1.1, 1.4];  % A and B for betalike for betaLR. Modestly discrourages very high apparent LRs.
 
 % psPr0  = [];  % If empty, HT1MAP02t below defaults to very weak priors. 
 
-% Paths derived from wherever this script lives, so nothing needs editing and there is
-% no cd into somebody else's Dropbox. Was two hard-coded ~/Dropbox/... lines plus cd.
 fs = filesep();  cwd = cd;
-thisScript = which(mfilename);
-if isempty(thisScript); datDir3Aug = [cwd fs]; else; datDir3Aug = [fileparts(thisScript) fs]; end
+try
+    dirs = where2findHT1;    % This is a function wherein you can add where data, outputs etc. are to be in your computer.
+    datDir3Aug = dirs.sandpit; 
+catch    
+   % Paths derived from wherever this script lives 
+   thisScript = which(mfilename);
+   if isempty(thisScript); datDir3Aug = [cwd fs]; else; datDir3Aug = [fileparts(thisScript) fs]; end
+end
 resDir = datDir3Aug;
 addpath(genpath(datDir3Aug));
 
@@ -69,7 +77,7 @@ for ptN=toDo
 
   d = prolD{ptN}.d; 
   p = prolD{ptN}.p; 
-  [ps, slp, sll, psPr, Hess] = HT1MAP02t( d, p, psPr0, psInit0, localDebug ); 
+  [ps, slp, sll, psPr, Hess] = HT1MAP03t( d, p, psPr0, psInit0, localDebug ); 
 
   d.feelm = NaN; d.feelu=NaN;   % Make it crystal clear these have not been fit.
   d.evalRL = NaN * d.evalRL ;   %   ... ditto.
