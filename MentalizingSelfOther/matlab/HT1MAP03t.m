@@ -192,8 +192,8 @@ ps = gridps;
 restpInit = [ps.prevp, ps.prevu, ps.SPartp, ps.SPartu, ps.T, ps.blockLR];
 
 %    prevp, prevu, SPartp, SPartu, T,    blockLR  
-lb = [0.01,  -50,   0.01,   0.1,  0.001, 0.01];  % lower bounds for restp
-ub = [0.99,   50,   0.99,    50,   100,  0.99];  % upper bounds for same
+lb = [0.01,  0.01,   0.01,  0.01,  0.001, 0.01];  % lower bounds for restp
+ub = [0.99,   40,    0.99,    40,   100,  0.99];  % upper bounds for same
 
 % Declare the function to be minimized by non-gradient descent. The follwing has to be
 % re-declared every time we want to do the fit, not e.g. before this loop :
@@ -238,7 +238,7 @@ ps.SPartnPr=discBetaMU(ps.SPartp,ps.SPartu,p.Nl);
 ps.T = restpOpt(5);  % may be deliberately spewed out! 
 ps.blockLR = restpOpt(6);
 
-disp(['end of map fitting. Best ps ']);
+disp(['End of MAP fitting. Best parameters (ps) : ']);
 disp(ps);
 slp = -mmLL;           % deliberately spewed out!
 disp([' final slp: ' num2str(slp)]);

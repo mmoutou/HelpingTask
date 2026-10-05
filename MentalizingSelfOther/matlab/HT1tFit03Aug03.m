@@ -113,7 +113,7 @@ for ptN=toDo
     dSave = D;  pSave = P;  tFit = fit;
     save([resDir thisFitStr '.mat'],   'dSave','pSave','tFit','D','P','fit');
   end
-
+  
   disp(['***************  pt ' num2str(ptN) ' finished with: **************']);
   disp('Fit measures:');
   disp(tFitMeasures);
@@ -126,7 +126,7 @@ end
 
 disp(' ');
 disp(['''t''reating each other fitting done, wrote ' resDir thisFitStr '.mat']);
-disp('Next: run HT1fFit03Aug*Both - also for csv of Hessian cond. num,, SEs, etc.');
+disp('Next: run HT1fFit03Aug*Both . NB No Hessians and SEs for tFits !');
 if localDebug
     disp('NB localDebug was 1, so a single grid point was used. Set it to 0 and rerun');
     disp('   for the real MAP fit, once you have seen the whole chain work.');
