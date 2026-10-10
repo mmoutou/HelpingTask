@@ -292,8 +292,8 @@ else  % calc. v.mapOthC based on previous round moves. To do
                           % emission noise ... 
    if ~P.detailed % then infer on all the Other's observed actions together,
                   % not incrementally for each one observed.
-     for pk=1:P.Nl      % pre-calc these as only few. Sadly
-                       % no benefit to do in log space here.
+     for pk=1:P.Nl  % pre-calc these as only few. Sadly
+                    % no benefit to do in log space here.
         othls(pk) = prod(P.poldens(pk,v.moves(2,:,v.settingLev)));
      end
      % normalize to prevent underflows, though likelihoods don't add
@@ -339,7 +339,7 @@ else  % calc. v.mapOthC based on previous round moves. To do
    else % P.detailed is true, do it observatation by observation
                     
      croInfdC = nan(patN,P.nCr); % crossings-other-Inferred-C 
-       % hold the belief about other's C at the beginning of each interaction (legacy name = crosing). 
+       % hold the belief about other's C at the beginning of each interaction (legacy name = crossing). 
        % It is temporary to this trial, so does not need to remember all the contexts.
      for cr = 1:P.nCr  
        % copy v.oInfdC into temp storage to calc. the shift later
@@ -348,6 +348,8 @@ else  % calc. v.mapOthC based on previous round moves. To do
        
        % Now pre-calc other's action likelihood (w.r.t. emission noise). Sadly
        % no benefit to do in log space here.
+       %    (cf othls(pk) = prod(P.poldens(pk,v.moves(2,:,v.settingLev))) above when all 'crossings' 
+       %     considered together )
        othls = P.poldens(:,v.moves(2,cr,v.settingLev));
        % normalize to prevent underflows, though likelihoods don't add
        % up to 1 - any multiplicative factor would do here I think ...
@@ -355,14 +357,15 @@ else  % calc. v.mapOthC based on previous round moves. To do
        for ci=1:patN
           goal  = D.CbOth(:,:,ci); 
           % Assume that Other would choose correctly, i.e. would choose
-          % policy 'who to be' so as to minimise the divergence bet.
-          % 'who WE would be' and goals:
+          % policy 'who to be' so as to minimise the divergence bet. 
+          % 'who WE would be' and goals. 
+
           othPk(ci) = 1;        % initialize w. first policy level
           goalDiv = inf;
           for pk = 1:P.Nl   % a tiny search !
              wedbe = P.poldens(pk,:)' * Spolb; 
              gd = sum(sum( wedbe .* (log(wedbe) - log(goal))));
-             if gd < goalDiv; goalDiv=gd; othPk(ci)=pk; end;
+             if gd < goalDiv; goalDiv=gd; othPk(ci)=pk; end
           end
 
           % update badly un-normalized ;-) posterior
@@ -409,7 +412,7 @@ else  % calc. v.mapOthC based on previous round moves. To do
        
      end    % loop over all the crossings in the prev. trial of this type
      
-     % Now store the inital beliefs for this trial, before thinking about policies ...
+     % Now store the posterior beliefs for this trial, before thinking about policies ...
      D.OthInfdC{blN}(:,v.settingLev,v.trial) = v.oInfdC(:,cx); % save for posterity ;-)
            
    end  % if statement re. whether to infer on all contributions together or blow-by-blow
@@ -486,7 +489,8 @@ else  % Interaction - by - interaction
           if gd < goalDiv; goalDiv=gd; othPk(ci)=pk; end
       end
       % Accummulate marginal summing over ci:
-        v.othExPol = v.othExPol + P.poldens(othPk(ci),:) * croInfdC(ci,cr);
+      v.othExPol = v.othExPol + P.poldens(othPk(ci),:) *  v.oInfdC(ci,v.settingLev);
+      % was, very likelyl mistakenly: v.othExPol = v.othExPol + P.poldens(othPk(ci),:) * croInfdC(ci,cr); 
     end  % loop over poss. other C
       
     % Now store expected action of Other and also the surpise that

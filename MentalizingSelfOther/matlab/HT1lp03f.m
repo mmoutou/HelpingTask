@@ -428,7 +428,7 @@ if (p.synth(1) || p.synth(2)) && details  % to generate synthetic
     runType.tSynth = p.synth(1);   % contribution (t[reat each other]) part
     runType.fSynth = p.synth(2);   % f[eelings] i.e. Evaluations part
     runType.detailed = 1;
-   [llt,llf,Outp] = HT1ll2(ps, d, p, runType,runType.selfMod); 
+   [llt,llf,Outp] = HT1ll03(ps, d, p, runType,runType.selfMod); 
 else
    % ... no synthetic data from HT1ll2
    runType.tSynth = 0; 

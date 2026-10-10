@@ -301,11 +301,24 @@ for block = 1:totBlN
                   % retreived from d, not dsynth, as Spol has been wiped in the latter.
         else v.Spol = nan;  end  % flag value  'past the end'
       end
+      if runtype.debugging > 0 &&  block == 2 && v.trial ==2
+          if runtype.detailed == 0
+              % disp(p.trN);
+              pSTemp = pS; pTemp = p; dsynthTemp = dsynth; vTemp = v; 
+              save('temp.mat', 'pSTemp', 'pTemp', 'dsynthTemp', 'vTemp' );
+          else
+              load('temp.mat');
+          end
+      end
       % line below should cater, in version HT1ll03, for p.synth having
       % two entries, 1st for everything, 2nd for feelings/evals only.
       [ll, v, dsynth] = HT1llSpol03(pS, p, dsynth, v);  % rem ll has ll for v.Spol
-      sllt = sllt + sum(ll); % this works even for the dummy trials at the end.
-      
+      if runtype.debugging
+          if v.trial == 1 && block == 1; outp.llAll = nan(1,sum(p.trN)); llCnt=1; end
+          outp.llAll(llCnt) = ll; llCnt = llCnt+1; 
+      end
+      sllt = sllt + sum(ll); % ; % this works even for the dummy trials at the end.
+
       %% update v.moves
       if v.trial <= p.trN(block)
          v.moves(:,1:p.nCr,v.settingLev) = v.nmoves(:,1:p.nCr,v.settingLev);
