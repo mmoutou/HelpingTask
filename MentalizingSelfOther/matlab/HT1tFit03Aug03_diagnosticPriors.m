@@ -9,8 +9,8 @@ toDo = 1:30;     % all participants. Was 26:30.
 
 thisFitVer = [num2str(toDo(1)) 'to' num2str(toDo(end)) '_03'];
 thisFitStr = ['HT1tFit' thisFitVer];    % to store outputs etc.
-write2disk = 1;          % Was 0, so it fitted and then threw the results away.
-localDebug = 0;          % 0 = the full 864-point grid, i.e. the real MAP fit. Hours.
+write2disk = 0;          % Was 0, so it fitted and then threw the results away.
+localDebug = 1;          % 0 = the full 864-point grid, i.e. the real MAP fit. Hours.
                          % 1 = a single grid point, minutes, useful only as a smoke test.
                          % Was 1 for the 25 Aug 26 shakedown run. Now the real thing.
 
