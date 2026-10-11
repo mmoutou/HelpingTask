@@ -285,13 +285,13 @@ for ptN= toDo   % Loop over feelings fits - - - - - - - - - - - - - - -
           %   Note this assumes all pts had same number of trials, which
           %   isn't strictly true, but is approximately true (only first two had slightly different):
           BICnN = -2*sum(mslf2{ptN}.sllf(1:2)) + ...       % deliberately not sllt here ! 
-                  + par2fitN * (log(sum(P.trN))) + ...   % was  + par2fitN *(log(p.trN) - log(2*pi)) + ...
+                  + par2fitN * (log(2*sum(P.trN))) + ...   % also had - log(2*pi)) + ...
                   + (groupParN / totPtN)  * log (grandTrN);
 
           fitHT1TBF{ptN,string(hdEval)} = feelP;
           % REM hdEvalFit = {'slpf','sllSf','sllOf','BICf','sllt','slpt','BICt',};
 
-          fitHT1TBF{ptN,string(hdEvalFit(1:5))} = [mslf2{ptN}.mpostf, ...
+          fitHT1TBF{ptN,string(hdEvalFit(1:5))} = [-mslf2{ptN}.mpostf, ...
                  mslf2{ptN}.sllf(1:2), BICnN, mslf2{ptN}.sllt]; 
       catch
           warning(['fmincon MAP fitting failed for pt ' num2str(ptN)]);
