@@ -159,7 +159,7 @@ for ptN=1:totPtN
     % Calculate and store sllt, slpt, BICt 
     % The t-fitted params were maximally: restpInit = prevp, prevu, SPartp, SPartu, T, blockLR, PLUS
     %                                                 Spref1	Spref2	Spref3	Spref4
-    tParMaxN = 11;
+    tParMaxN = 10;
     sllt = tFit{ptN}.sll;  slpt = tFit{ptN}.slp;
     tNDat = sum(P{ptN}.trN);
     BICt = -2*sllt  + tParMaxN * (log(tNDat)); 
