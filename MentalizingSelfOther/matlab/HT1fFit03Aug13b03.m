@@ -159,7 +159,7 @@ for ptN=1:totPtN
     % Calculate and store sllt, slpt, BICt 
     % The t-fitted params were maximally: restpInit = prevp, prevu, SPartp, SPartu, T, blockLR, PLUS
     %                                                 Spref1	Spref2	Spref3	Spref4
-    tParMaxN = 11;
+    tParMaxN = 10;
     sllt = tFit{ptN}.sll;  slpt = tFit{ptN}.slp;
     tNDat = sum(P{ptN}.trN);
     BICt = -2*sllt  + tParMaxN * (log(tNDat)); 
@@ -256,7 +256,7 @@ for ptN= toDo   % Loop over feelings fits - - - - - - - - - - - - - - -
           disp(['Now fitting pt ',num2str(ptN) ' using fmincon, ' codeName ', for eta,sig,wOS11,wOS12,wOS21,wOS22,E0s,E0o,EvBlockLR']);
           [feelpOpt, mmLL,~, output, ~, ~, hessian] = fmincon(mLP, feelpInit, A, b, Aeq, beq,lb,ub );
           %% ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        
+    
           % now run HT1lp03f once again to return details and augment with the 
           % fit quality indices :
           mslf2{ptN} = HT1lp03f( feelpOpt, pS, D, P, psPr, [1,1], 1); 
