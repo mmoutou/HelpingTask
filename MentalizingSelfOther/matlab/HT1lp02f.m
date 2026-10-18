@@ -300,15 +300,54 @@ elseif  runType.selfMod(2) == 13  % set up priors for RLEval13 model, which is R
       psPr.evalRL0 = nan;
     end
     if isnan(psPr.evalRL0)  % nan can also be given as an argument to force default.
-        [psPr.evalRL0, ~] = priParEvalRL();
-         % will cater later for those set deterministically, so prior=1.
+        [psPr.evalRL0, ~] = priParEvalRLHT1();   % 13 cols, i.e. incl. EvBlockLR.
+         % was priParEvalRL(), which returns only 12 and so leaves parameter 13 with
+         % no prior at all. will cater later for those set deterministically, so prior=1.
     end
 % D.RLEval(v.trial+1,2:3) =  [E0s E0o]' + ...
 %                            ( (1-eta)*[[1-wEx, wEx]; [wEx, 1-wEx]] * D.RLEval(v.trial,2:3)' + ...
 %                                 eta * wOS*((1-lambda2)*Ret + lambda2*PE))' ; 
-% %    1   ==>2         ==>4   ==>5    ==>6    ==>7  ==>8   9 fix->min    10    ==>11  ==>12  ==>13
+% %    1   ==>2         ==>4   ==>5    ==>6    ==>7  ==>8   9 SET BY CALLER  10  ==>11  ==>12  ==>13
 % % lambda   eta    wEx   sig    wOS11  wOS12  wOS21  wOS22   lambda2     lps    E0s    E0o     EvBlockLR
   ps.evalRL([2,4,5,6,7,8,11,12,13]) = restp;  % No yoked params. 
+  % NB lambda2, entry 9, is NOT set here, it is inherited from whatever the calling
+  % script left in pS.evalRL. That is how model 13 came to be documented as the
+  % returns-based one (comment '9 fix->min') while HT1fFit03Aug13bBoth set it to +20,
+  % i.e. invlogit(20) = 1, and ran it prediction-error based. Set it deliberately in
+  % the calling script and say which you meant.
+  try  rmfield(ps,{'feelm','feelu'}); end
+
+elseif  runType.selfMod(2) == 15  % RLEval15, the preregistration model.
+    % Derived from 13, with three changes, each following from the 26 Aug 26 full-grid fits:
+    %  (a) wEx (entry 3) is FREED. It is the cross-talk between the self and other
+    %      evaluation channels, i.e. whether feeling badly about oneself drags the view of
+    %      the partner down with it. It was fixed at 0 in every earlier version, so a fused
+    %      self-other structure could not be distinguished from an insulated one at all.
+    %  (b) EvBlockLR (entry 13) is FIXED, not fitted. Its median standard error was 8.67 on
+    %      the transformed scale against 0.13 for sig, and 1 participant of 30 had an
+    %      estimate distinguishable from zero. Three partners give two between-partner
+    %      transitions, which cannot support a rate. It stays wired into the likelihood
+    %      (llfeelHT1b), it is simply no longer free.
+    %  (c) lambda2 is set here rather than inherited from the calling script.
+    % par2fit = [2,3,4,5,6,7,8,11,12] : nine free against 66 ratings per participant.
+    try 
+      psPr.evalRL0;
+    catch
+      clear psPr;
+      psPr.evalRL0 = nan;
+    end
+    if isnan(psPr.evalRL0)
+        [psPr.evalRL0, ~] = priParEvalRLHT1();   % 13 cols, incl. EvBlockLR
+    end
+% D.RLEval(v.trial+1,2:3) =  [E0s E0o]' + ...
+%                            ( (1-eta)*[[1-wEx, wEx]; [wEx, 1-wEx]] * D.RLEval(v.trial,2:3)' + ...
+%                                 eta * wOS*((1-lambda2)*Ret + lambda2*PE))' ; 
+% %    1   ==>2   ==>3  ==>4   ==>5    ==>6   ==>7   ==>8   9 set here  10   ==>11  ==>12  13 fixed
+% % lambda   eta    wEx   sig   wOS11  wOS12  wOS21  wOS22   lambda2    lps    E0s    E0o    EvBlockLR
+  ps.evalRL([2,3,4,5,6,7,8,11,12]) = restp;  % No yoked params.
+  ps.evalRL(9)  = -20;   % invlogit(-20) ~ 0 : evaluations track RETURNS. Stated on purpose.
+  ps.evalRL(13) =   0;   % invlogit(0) = 0.5 : half of the previous partner's evaluative
+                         % state carries into the next, for everyone. Fixed, not estimated.
   try  rmfield(ps,{'feelm','feelu'}); end
 
 elseif  runType.selfMod(2) == 14  % set up priors for RLEval14 model, which is Returns based but
@@ -375,6 +414,8 @@ else
     LPri.evalRL([1,3,9,10]) = 0;        % 13 has par2fit = [2,4,5:8,11,12,13]; 
   elseif  runType.selfMod(2) == 14 
     LPri.evalRL([1,3,9,10,12]) = 0;     % 14 has par2fit = [2,4,5:8,11,13]; 
+  elseif  runType.selfMod(2) == 15 
+    LPri.evalRL([1,9,10,13]) = 0;       % 15 has par2fit = [2,3,4,5:8,11,12]; 
   end
   lnPri = sum(LPri.evalRL);
 end

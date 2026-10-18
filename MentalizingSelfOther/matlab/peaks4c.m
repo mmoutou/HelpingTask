@@ -12,7 +12,8 @@ function p = peaks4c (p)
 % Needs to receive p.Nl within p.
 %
 % Maybe can consider uncertainties re. taste in you too but 
-% take e.g. noisyBino(yPref/(N+1),N/3,N) as reasonable default ...
+% take e.g. noisyBino(yPref/(N+1),N/3,N) as reasonable default, or
+%      approx equivalent discBetaMU(yPref/(N+1),N/20,N) . 
 
 try
   p.Nl;

@@ -24,8 +24,11 @@
 %  BIC_kc := -2 ln Lopt + k*ln(n/(2*pi) + (c/N)* ln (nN)
 %                             = -2 ln Lopt + k*(ln n ) + (c/N)* ln (nN)
 
-clear variables; 
+clear variables; scriptFile = 'HT1fFit03Aug13bBoth'; 
+
 %% ~~~~~~~~~~  Menu-like items ~~~~~~~~~~~~~~~~~~
+econFile = 'HT1tFit1to30c.mat';  % neuroecon 'treating each other' fits to use.
+% econFile = 'HT1tFit1to30b.mat';  % neuroecon 'treating each other' fits to use.
 apprStr = '11';   approvs2fit = [1,1];    % weights to place on the 
     % log lik for self, other, and poss. other->self in summing mslf2. 
     % if '10', [1,0] fit only the self data etc. NOT CHANGED IN MOST MODELS,
@@ -61,13 +64,15 @@ if codeTesting >= 1
     outDir = dirs.sandpit; 
     addpath(outDir);
 elseif codeTesting == 0
-    warning('NO codeTesting, so outputs directed to dirs.HT1St2MentSOres.');
+    warning('NO codeTesting, full output directed to sandbox directory.');  % so outputs directed to dirs.HT1St2MentSOres.');
+    outDir = dirs.sandpit; 
     outDir = dirs.HT1St2MentSOres; 
     addpath(outDir);
 else
     error('codeTesting code encountered is not provided for');
 end
-load('HT1tFit1to30a.mat');  % provides / updates  D{}, P{}, tFit{}
+load(econFile);  % provides / updates  d{} (aka D), p{} (aka P), tFit{}
+try d = D; p=P; catch ; end
     
 %% Form key headers for csvs, tables etc.
 % Columns headings for the output. 
@@ -84,8 +89,8 @@ hdDM   = {'Spref1', 'Spref2','Spref3','Spref4','prevp','prevu',...
           'SPartp','SPartu','SPartnPr1','SPartnPr2','SPartnPr3','SPartnPr4',...
           'T','blockLR'};
 errHd = {'numID','lambdaSE','etaSE','wExSE','sigSE','wOS11SE',...
-         'wOS12SE','wOS21SE','wOS22SE','lambda2SE','lpsSE','E0sSE','E0oSE','EvBlockLRSE','fRCondHess'...
-         'prevpSE','prevuSE','SPartpSE','SPartuSE','TSE','blockLRSE','tRCondHess','prolificID' };
+         'wOS12SE','wOS21SE','wOS22SE','lambda2SE','lpsSE','E0sSE','E0oSE','EvBlockLRSE','fLnRCondHess'...
+         'prevpSE','prevuSE','SPartpSE','SPartuSE','TSE','blockLRSE','tLnRCondHess','prolificID' };
 fErrHd = errHd(2:14); fErrHd = fErrHd(par2fit); % for easy reference of fitted values
 
 hdf = ['numID',hdEval,hdEvalFit,hdDM];
@@ -147,14 +152,19 @@ for ptN=1:totPtN
     se = nan(size(d{ptN}.tHess,1),1);
     % Before attempting to estimate Hessian based errors, see that it is well conditioned:
     rcondH = rcond(d{ptN}.tHess);
-    if rcondH > 1e-8 && isfinite(abs(rcondH))
+    tLnRCondH = nan; if rcondH > 0; tLnRCondH = log(rcondH); end
+    if ~isfinite(abs(rcondH)) || rcondH < 1e-8 
+        warning(['Pt.' num2str(ptN), ', t-Hessian inversion problem: Cond. N rH=' num2str(rcondH) ]);
+    end
+    try
         covMat = d{ptN}.tHess \ eye(size(d{ptN}.tHess));
         se = sqrt(diag(covMat));
-    else
-        warning('Inverting the Hessian failed, so leaving SEs as NaN');
+    catch
+        warning(['for pt.' num2str(ptN), ', Hessian inversion failed.']);
     end
+
     errHT1TBF{ptN,string({'prevpSE','prevuSE','SPartpSE','SPartuSE','TSE','blockLRSE'})} = se'; 
-    errHT1TBF{ptN,'tRCondHess'} = rcondH;
+    errHT1TBF{ptN,'tLnRCondHess'} = tLnRCondH;
 
 end
 
@@ -253,12 +263,16 @@ for ptN= toDo
           mslf2{ptN}.fitOut = output;
           mslf2{ptN}.Hess = hessian;
           fRCondHess = rcond(hessian);  % Is Hessian well-conditioned ( > 1e-8)
-          errHT1TBF{ptN,'fRCondHess'} = fRCondHess;
-          if fRCondHess > 1e-8 && isfinite(abs(fRCondHess))
+          fLnRCondH = nan; if fRCondHess > 0; fLnRCondH = log(fRCondHess); end
+          errHT1TBF{ptN,'fLnRCondHess'} = fLnRCondH;
+          if fRCondHess < 1e-8 || ~isfinite(abs(fRCondHess))
+             warning(['Pt.' num2str(ptN), ', f-Hessian inversion problem: Cond. N rH=' num2str(fRCondHess) ]);
+          end
+          try
             covMat = hessian \ eye(size(hessian));
             se = sqrt(diag(covMat))';
             errHT1TBF{ptN,string(fErrHd)} = se;         
-          else
+          catch
             warning('Inverting the Evaluations Fit Hessian failed, so leaving SEs as NaN');
           end
 
@@ -297,6 +311,7 @@ for ptN= toDo
 
 end
 
+disp(['Completed' scriptFile '. Outputs in ' outDir '.']); 
 warning([fitName ' done. , with NO group params - IS THIS OK?']); 
 cd(cwd)
 

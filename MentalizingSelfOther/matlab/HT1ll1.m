@@ -208,7 +208,7 @@ if p.synth(2)   % this is about synthesizing choices about feelings (evaluations
        % Now zero the to-be-generated bits of dsyn : 
        dsynth.evo{block}(:,dEvalCol) = 0;   
     end
-    if  p.selfMod(2) >=2 && p.selfMod(2) > 14
+    if  p.selfMod(2) >=2 && p.selfMod(2) > 15
        error(['not ready for p.selfMod(2) ==' num2str(p.selfMod),',p.synth=', num2str(p.synth)]);
     end    
 end
@@ -320,8 +320,11 @@ for block = 1:totBlN
               if p.selfMod(2) == 1
                  % ll for feeling ratings for basic joint pref. model only
                  [llf, v, dsynth] = llfeelHT1(pS, p, dsynth, v); 
-              elseif p.selfMod(2) >= 2  && p.selfMod(2) <= 14
-                 % RLish / PE kernel based approval / emotion:
+              elseif p.selfMod(2) >= 2  && p.selfMod(2) <= 15
+                 % RLish / PE kernel based approval / emotion. Upper limit raised
+                 % from 14 to 15 for RLEval15: without this, selfMod(2) = 15 fell
+                 % through to the error below, which the try/catch in HT1fFit*
+                 % swallowed as 'fmincon MAP fitting failed' for every participant.
                  [llf, v, dsynth] = llfeelHT1b(pS, p, dsynth, v); % rem ll has ll for feeling ratings only
               else
                  error(['p.selfMod(2)==' num2str(p.selfMod(2)) ' not catered for.']);

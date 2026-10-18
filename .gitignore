@@ -1,10 +1,11 @@
+# matlab accessory-for-running files
+*.asv
+
+# backups
 *.bak*
 
 # macOS Finder metadata
 .DS_Store
 
-# macOS Finder metadata
-.DS_Store
-
-# macOS Finder metadata
-.DS_Store
+# R histoy log
+.Rhistory

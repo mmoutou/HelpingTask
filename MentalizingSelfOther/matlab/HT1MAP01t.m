@@ -19,7 +19,8 @@ try localdebug;  catch  localdebug = 1;  end
 % Initialize ps - with 'neutral' values if not initial val provided: 
 try  psInit.Spref; catch psInit.Spref=[]; end
 if isempty(psInit.Spref)
-  psInit.Spref=repmat([0,1,2,3],p.settingLevN);  % will start from a 'neutral' pref
+  psInit.Spref=repmat(0:(p.Nl-1),p.settingLevN,1);  % will start from a 'neutral' pref.
+  % repmat(v,n) tiles n-by-n, which is only accidentally right when settingLevN==1.
   psInit.prevp = 0.1;  psInit.prevu=2;  % for noisyBino(0.5,2,4) for prevPri
   psInit.prevPri = noisyBino(psInit.prevp,psInit.prevu,p.Nl); 
   psInit.SPartp = 0.9; psInit.SPartu=1;  % ditto for SPartnPr
@@ -31,9 +32,19 @@ psbest = psInit;
 
 % Intialize coarse grid over continuous parameters : 
 grid.prevp  = [0.05 0.45 0.85];
-grid.prevu  = [-5 -1  1  5];
+grid.prevu  = [1];   % FIXED, not searched, and held fixed in fmincon below. In the
+                     % 26 Aug 26 fits only 15 of 30 decision Hessians inverted, and that
+                     % number was IDENTICAL from 1 starting point and from 144, which rules
+                     % out local optima and leaves structural unidentifiability at 3 blocks.
 grid.SPartp = [0.2  0.5  0.8];
-grid.SPartu = [-5 1  1 5];
+grid.SPartu = [1];   % FIXED, same reason. Its standard error was twice the between-person
+                     % spread of its own estimates. NB when it WAS searched the line read
+                     % [-5 1 1 5], with the minus missing, so the negative half of the range
+                     % was never explored. That was corrected before the decision to fix it.
+% grid.SPartu = [-5 -1  1 5];   % OZ: was [-5 1 1 5], the minus had gone missing, so the
+                              % grid tried +1 twice and never started SPartu negative.
+                              % pslPrHT1 puts the prior on abs(SPartu) precisely so that
+                              % both signs are admissible, so the negative start was meant.
 grid.T      = [0.15 1.35 4.05];  
 grid.blockLR  = [0.1 0.6];
 
@@ -172,23 +183,37 @@ ps = gridps;
 
 %% Now keeping ps.Spref constant, fit the continuous
 %  params:  prevp, prevu, SPartp, SPartu, T, blockLR
-restpInit = [ps.prevp, ps.prevu, ps.SPartp, ps.SPartu, ps.T, ps.blockLR];
+% prevu (2) and SPartu (4) are held at the values the grid gave them, and only the
+% remaining four are optimised. Fixing them by lb == ub would leave zero rows in the
+% Hessian and destroy every decision-model standard error, so they are removed from the
+% search vector instead and the 4x4 Hessian is embedded in a 6x6 below.
+tFixed = [2 4];   tFree = setdiff(1:6, tFixed);
+restpFull = [ps.prevp, ps.prevu, ps.SPartp, ps.SPartu, ps.T, ps.blockLR];
+restpInit = restpFull(tFree);
 
 % Declare the function to be minimized by fmincon. The follwing has to be
 % re-declared every time we want to do the fit, not e.g. before this loop :
 details=0; 
-mLP = @(restp)HT1lp2( restp, ps, d, p, psPr, details);
+mLP = @(rp)HT1lp2( fillFixedHT1(rp, restpFull, tFree), ps, d, p, psPr, details);
 % boring: have to specify empty 'linear constraints' in order to get to 
 % the arguments for the lower and upper bounds, acc. to the doc fmincon example ...
 A = []; b = []; Aeq = [];  beq = [];
-lb = [0.01, -50, 0.01, -50,0.001, 0.01];  % lower bounds for restp
-ub = [0.99,  50, 0.99,  50, 100,  0.99];  % upper bounds for same
+lbFull = [0.01, -50, 0.01, -50,0.001, 0.01];  % lower bounds for the full restp
+ubFull = [0.99,  50, 0.99,  50, 100,  0.99];  % upper bounds for same
+lb = lbFull(tFree);   ub = ubFull(tFree);
 % was:
 % lb = [0.01, 0.1,0.01, 0.1,0.001];  % lower bounds for restp
 % ub = [0.99, 50, 0.99, 50, 100  ];  % upper bounds for same
-disp('Now running fmincon for prevp, prevu, SPartp, SPartu, T ...');
-[restpOpt, mmLL, ~, output, ~, ~, hessian] = ...
+disp('Now running fmincon for prevp, SPartp, T, blockLR (prevu and SPartu held fixed) ...');
+[rpOpt, mmLL, ~, output, ~, ~, hFree] = ...
     fmincon(mLP, restpInit, A, b, Aeq, beq,lb,ub );
+restpOpt = fillFixedHT1(rpOpt, restpFull, tFree);
+% Embed the 4x4 Hessian of the free parameters in a 6x6, with the identity on the fixed
+% entries. The matrix is block diagonal, so inverting it recovers the four real standard
+% errors exactly; the two entries for prevu and SPartu come out as 1 and are meaningless,
+% and HT1fFit03Aug13bBoth sets them to NaN using ps.tFixed.
+hessian = eye(6);   hessian(tFree,tFree) = hFree;
+ps.tFixed = tFixed;
 
 % store and display best (so far ...) :
 ps.prevp =restpOpt(1); ps.prevu =restpOpt(2); 
@@ -208,3 +233,10 @@ disp([' final sll: ' num2str(sll)]);
 
 return;
 
+
+function full = fillFixedHT1(freeVals, fullTemplate, freeIdx)
+%FILLFIXEDHT1 put the optimised free parameters back into the full 6-element vector,
+%   leaving the fixed entries at whatever the grid search left them at.
+full = fullTemplate;
+full(freeIdx) = freeVals;
+return;
