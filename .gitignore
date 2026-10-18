@@ -1,3 +1,7 @@
+# matlab accessory-for-running files
+*.asv
+
+# backups
 *.bak*
 
 # macOS Finder metadata
