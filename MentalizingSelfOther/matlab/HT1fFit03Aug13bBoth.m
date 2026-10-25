@@ -27,8 +27,8 @@
 clear variables; scriptFile = 'HT1fFit03Aug13bBoth'; 
 
 %% ~~~~~~~~~~  Menu-like items ~~~~~~~~~~~~~~~~~~
-econFile = 'HT1tFit1to30c.mat';  % neuroecon 'treating each other' fits to use.
-% econFile = 'HT1tFit1to30b.mat';  % neuroecon 'treating each other' fits to use.
+econFile = 'HT1tFit1to30_03.mat';  % neuroecon 'treating each other' fits to use.
+% econFile = 'HT1tFit1to30c.mat';  % neuroecon 'treating each other' fits to use.
 apprStr = '11';   approvs2fit = [1,1];    % weights to place on the 
     % log lik for self, other, and poss. other->self in summing mslf2. 
     % if '10', [1,0] fit only the self data etc. NOT CHANGED IN MOST MODELS,
@@ -69,8 +69,6 @@ fs = filesep();   % the character that separates folders from subfolders in the 
 % directories to use, and where to to output results - see dirs.outPath below.   
 dirs = where2findHT1; % paths depending on whether Michael or somebody else (who has added to
                       % where2findHT1) is running this.
-datdir = dirs.HT1St2MentSOres;
-cd(datdir);
 
 % for testing, direct outputs to a rough work, 'sandpit' directory:
 if codeTesting >= 1
@@ -81,11 +79,13 @@ if codeTesting >= 1
 elseif codeTesting == 0
     warning('NO codeTesting, full output directed to sandbox directory.');  % so outputs directed to dirs.HT1St2MentSOres.');
     outDir = dirs.sandpit; 
-    outDir = dirs.HT1St2MentSOres; 
+    % outDir = dirs.HT1St2MentSOres; 
     addpath(outDir);
 else
     error('codeTesting code encountered is not provided for');
 end
+datdir = dirs.sandpit;
+cd(datdir);
 load(econFile);  % provides / updates  d{} (aka D), p{} (aka P), tFit{}
 try d = D; p=P; catch ; end
     

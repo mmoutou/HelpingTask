@@ -1,6 +1,6 @@
 % HT1tFit03Aug03.m: Script, not function, to fit a toDo range of data, decisions only, 
 % from 03Aug26 Prolific pts, Helping Task. 
-% version 03, i.e. ...03Aug03, Using weakly informative priors for 1/prevu and 1/SPartu,
+% version 03, i.e. ...03Aug03, Using unformative priors for 1/prevu and 1/SPartu,
 %         and optimizer that does not depend on smoothness, Hessian etc.
 %         See line thisFitVer = ...
 % See subesquent versions for conditional blocks
@@ -25,10 +25,10 @@ for o=1:Nl
     end
 end
 psPr0.prevp0 = [1.05, 1.05];  % A and B for betalike for pSucc of noisyBino describing prevPri
-psPr0.prevu0 = [1.5, 1]; 
+psPr0.prevu0 = [1.01, 1];   % [1.01, 1] rises very rapidly from 0 and then falls slowly.
 
 psPr0.SPartp0 =  [1.05, 1.05]; % [45, 10];  for highly constrained diagnostic. Uninf. is: psPr0.SPartp0 = [1.05, 1.05]; 
-psPr0.SPartu0 = [1.5 1]; % [2, 0.04] for diagnostic;  % check with x = 0:0.01:10; plot(x,gampdf(x,1.5,0.1)) % for less highly constrained.
+psPr0.SPartu0 = [1.01 1]; % [2, 0.04] for diagnostic;  % check with x = 0:0.01:10; plot(x,gampdf(x,1.5,0.1)) % for less highly constrained.
 
 psPr0.T0 = [1.5, 0.5];        % A and B for gamlike on T
 psPr0.blockLR0 = [1.1, 1.4];  % A and B for betalike for betaLR. Modestly discrourages very high apparent LRs.

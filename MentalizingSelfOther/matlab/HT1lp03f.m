@@ -261,7 +261,7 @@ elseif  runType.selfMod(2) == 10  % set up priors for RLEval10 model, which is P
 % D.RLEval(v.trial+1,2:3) =  [E0s E0o]' + ...
 %                            ( (1-eta)*[[1-wEx, wEx]; [wEx, 1-wEx]] * D.RLEval(v.trial,2:3)' + ...
 %                                 eta * wOS*((1-lambda2)*Ret + lambda2*PE))' ; 
-% %  ==>1   ==>2         ==>4   ==>5    ==>6    ==>7  ==>8   9 fix->max    10  ==>11  ==>12    ==>13
+% %  ==>1   ==>2         ==>4   ==>5    ==>6    ==>7  ==>8   9 fix->max   10  ==>11  ==>12    ==>13
 % % lambda   eta    wEx   sig    wOS11  wOS12  wOS21  wOS22   lambda2     lps    E0s    E0o      EvBlockLR
   ps.evalRL([1,2,4,5,6,7,8,11,12,13]) = restp;  % No yoked params. 
     try  rmfield(ps,{'feelm','feelu'}); end
@@ -289,8 +289,11 @@ elseif  runType.selfMod(2) == 11  % set up priors for RLEval11 model, which is P
   ps.evalRL(12) = ps.evalRL(11);          % yoked param - fix E0o := E0s. 
     try  rmfield(ps,{'feelm','feelu'}); end
 
+elseif  runType.selfMod(2) == 12 
+    error('Model 12 not filled in in HT1lp03f - currently just a placeholder.')
+
 elseif  runType.selfMod(2) == 13  % set up priors for RLEval13 model, which is Returns based but
-    % otherwise like full wOS (ie. RLEval07 ), and has yoked E0 = [E0s E0o=E0s]'. 
+    % otherwise like full wOS (ie. RLEval07 ), and has NO yoked E0 = [E0s E0o]'. 
     % See below in this block for how this is uses ps.evalRL (the params) and further down for
     % ps.evalRL0 (the priors on these).
     try 
@@ -307,17 +310,15 @@ elseif  runType.selfMod(2) == 13  % set up priors for RLEval13 model, which is R
 % D.RLEval(v.trial+1,2:3) =  [E0s E0o]' + ...
 %                            ( (1-eta)*[[1-wEx, wEx]; [wEx, 1-wEx]] * D.RLEval(v.trial,2:3)' + ...
 %                                 eta * wOS*((1-lambda2)*Ret + lambda2*PE))' ; 
-% %    1   ==>2         ==>4   ==>5    ==>6    ==>7  ==>8   9 SET BY CALLER  10  ==>11  ==>12  ==>13
-% % lambda   eta    wEx   sig    wOS11  wOS12  wOS21  wOS22   lambda2     lps    E0s    E0o     EvBlockLR
+% %   1   ==>2   3 fix->min.  ==>4   ==>5    ==>6    ==>7  ==>8    9 fix->min.  10  ==>11  ==>12  ==>13
+% % lambda   eta    wEx         sig    wOS11  wOS12  wOS21  wOS22   lambda2     lps    E0s    E0o     EvBlockLR
   ps.evalRL([2,4,5,6,7,8,11,12,13]) = restp;  % No yoked params. 
-  % NB lambda2, entry 9, is NOT set here, it is inherited from whatever the calling
-  % script left in pS.evalRL. That is how model 13 came to be documented as the
-  % returns-based one (comment '9 fix->min') while HT1fFit03Aug13bBoth set it to +20,
-  % i.e. invlogit(20) = 1, and ran it prediction-error based. Set it deliberately in
-  % the calling script and say which you meant.
+  % NB fixed (default rather than fitted) values of parameters, like lambda2 here, are 
+  % set in the calling script - so they can be set, for example, to a value derived from 
+  % the group mode of a previous fit. 
   try  rmfield(ps,{'feelm','feelu'}); end
 
-elseif  runType.selfMod(2) == 15  % RLEval15, the preregistration model.
+elseif  runType.selfMod(2) == 15  % RLEval15, first Orestis Zavlis model.
     % Derived from 13, with three changes, each following from the 26 Aug 26 full-grid fits:
     %  (a) wEx (entry 3) is FREED. It is the cross-talk between the self and other
     %      evaluation channels, i.e. whether feeling badly about oneself drags the view of

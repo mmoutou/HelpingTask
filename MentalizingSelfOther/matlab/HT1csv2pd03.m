@@ -27,7 +27,7 @@ catch
     p.data_dir = [];
 end
 if isempty(p.data_dir)
-    p.data_dir = [homeD 'Dropbox' fs 'FIL_aux' fs 'MSc_iBSc_PhD_student' fs 'Kwan_(Tyler)' fs 'HelpingTaskProject_sharing' fs 'sandpit' fs];
+    p.data_dir = [homeD 'Dropbox' fs 'FIL_aux' fs 'MSc_iBSc_PhD_student' fs 'Kwan_(Tyler)' fs 'HelpingTaskProject_sharing' fs 'ProlificHelpingTask' fs];
     warning(['data_dir not given, set to ' p.data_dir]);
 end
 

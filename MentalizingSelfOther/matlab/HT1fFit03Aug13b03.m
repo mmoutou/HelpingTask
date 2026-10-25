@@ -31,24 +31,37 @@ clear variables; scriptFile = 'HT1fFit03Aug13b03';
 %% ~~~~~~~~~~  Menu-like items ~~~~~~~~~~~~~~~~~~
 econFile = 'HT1tFit1to30_03.mat';  % neuroecon 'treating each other' fits to use.
 % econFile = 'HT1tFit1to30b.mat';  % neuroecon 'treating each other' fits to use.
-apprStr = '11';   approvs2fit = [1,1];    % weights to place on the 
-    % log lik for self, other, and poss. other->self in summing mslf2. 
-    % if '10', [1,0] fit only the self data etc. NOT CHANGED IN MOST MODELS,
-    % WHICH DEALS WITH THE SELF AND OTHER EVALUATIONS ONLY, AND 
-    % PUT THEM IN THE SAME FOOTING.
-% More strings to use when naming outputs:
+
+% Additional strings to use when naming outputs:
 % (Change below for new model version)
 nameStr = {'HT1fFit03Aug','13b','SO'};
 codeName = [nameStr{1} nameStr{2} nameStr{3}]; % name of this script or function,
     % will be used for key outputs.
-% (Change below for new model version) :
-par2fit = [2,4,5,6,7,8,11,12,13]; % parameter selection to fit in this version. See 
-                               % below for description.
-par2fitN  = length(par2fit);  % To be used for BIC
-groupParN = 0;                % params derived from whole group
+
+%% KEY MENU ITEM - MODEL PARAMETER DEFAULTS, INITIAL VALUES, ETC. (Change below for new model version) :
+selfMod = [1,13]; % [1 is the t/DM model, 13] is the evaluations model fitted here.
+
+% *Default* values of ALL parameters used by the model (Change below for new model version):                               
+%      TRANSF lambda  eta wEx  sig  wOS11 wOS12 wOS21  wOS22 lambda2 lps E0s E0o EvBlockLR 
+feelPDefault = [-20,  1.9,-20,-0.56, 0.26, 2.41, 2.41,  0.26, -20,   -20,  0,  0, -1.4];  
+
+% *Initial* values of DELIBERATELY ALL parameters (Change below for new model version) *: as per par2fit below. 
+%                        *              *       *      *     *     *                  *     *      *
+% %               1      2       3      4       5      6     7     8       9     10   11   12      13    
+% %            lambda   eta     wEx    sig    wOS11 wOS12 wOS21  wOS22  lambda2  lps  E0s  E0o  EvBlockLR
+feelPInit = [   -20,    1.9,   -20,   -0.56,  0.26, 2.41,  2.41, 0.26,   -20,   -20   0     0    -0.666 ]; 
+
+%  par2fit, parameter selection to fit in this version, should tally with HT1lp02f
+%  (Change below for new model version):
+par2fit = [2,4,5,6,7,8,11,12,13]; par2fitN  = length(par2fit); % will also used for BIC
+% Retain as initial parameter values ONLY the ones to be fitted here : 
+feelPInit = feelPInit(par2fit);
+groupParN = 0;                % params derived from previous group fit, and 
+                              % fixed across pts. here.
+
+%  Whether to do code test, full list of pts, etc (Change below for new model version):                             
 codeTesting = 0;  % if set to non-zero, use various debugging settings - see below.
 toDo = 1:30;      % which participant from the 3 Aug 26 dataset to do
-selfMod = [1,13]; % [1 is the t/DM model, 13] is the evaluations model fitted here.
 
 %% initial directory work - read in or set by hand key directories to work with
 cwd = cd;         % just a record of where all this is being run from.
@@ -73,6 +86,16 @@ elseif codeTesting == 0
 else
     error('codeTesting code encountered is not provided for');
 end
+
+%% end of Menu-like items ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+apprStr = '11';   approvs2fit = [1,1];    % weights to place on the 
+    % log lik for self, other, and poss. other->self in summing mslf2. 
+    % if '10', [1,0] fit only the self data etc. NOT CHANGED IN MOST MODELS,
+    % WHICH DEALS WITH THE SELF AND OTHER EVALUATIONS ONLY, AND 
+    % PUT THEM IN THE SAME FOOTING.
+
+% Load key data 
 load(econFile);  % provides / updates  d{} (aka D), p{} (aka P), tFit{}
 try d = D; p=P; catch ; end
     
@@ -105,14 +128,6 @@ timeStamp = string(datetime('now', 'Format', 'yyyyMMddHHmmss'));
 fitName = [codeName num2str(toDo(1)) 'to' num2str(toDo(end)) char(timeStamp)];   % for storage etc.
 cd(outDir); 
 
-
-%% Select the initial values for evalRL params from the vector below. SEE LATER FOR FIXED/DEFAULTS.
-%  (Change below for new model version). * = current . 
-%                         *              *       *      *     *     *                  *     *      *
-% %               1       2       3      4       5      6     7     8       9     10   11   12      13    
-% %            lambda    eta     wEx    sig    wOS11 wOS12 wOS21  wOS22  lambda2  lps  E0s  E0o  EvBlockLR
-feelpInit = [    -20,    1.9,   -20,   -0.56,  0.26, 2.41,  2.41, 0.26,   -20,   -20   0     0    -0.666 ];   
-feelpInit = feelpInit(par2fit);
 
 %% Extract decision making, i.e. _t_ reat-each-other data from fit24f _t_                 
 totPtN = length(tFit);
@@ -233,16 +248,14 @@ for ptN= toDo   % Loop over feelings fits - - - - - - - - - - - - - - -
       details=0; 
       % The following line contains all the important defaults. The to-be-fitted
       % will ofc be replaced within the likelihood fn, e.g. HT1lp02f
-      % (Change below for new model version) :
-      % TRANSF lambda  eta wEx sig  wOS11  wOS12 wOS21  wOS22 lambda2 lps E0s E0o EvBlockLR 
-      pS.evalRL  =[-20,1.9,-20,-0.56, 0.26, 2.41, 2.41,  0.26, 20,   -20,  0,  0, -1.4];  
-      
-      mLP = @(feelp)HT1lp03f( feelp, pS, D, P, psPr, approvs2fit, details);
+      pS.evalRL  = feelPDefault; 
+
+      mLP = @(feelP)HT1lp03f( feelP, pS, D, P, psPr, approvs2fit, details);
       % boring: have to specify empty 'linear constraints' in order to get to 
       % the arguments for the lower and upper bounds, acc. to the doc fmincon example ...
       A = []; b = []; Aeq = [];  beq = [];
       % NB fit will take place in transformed space, hence the values of lower and upper bounds.
-      % first row has upper bounds for feelp, second has lower. Maximally,
+      % first row has upper bounds for feelP, second has lower. Maximally,
       %prHd={'lambda','eta','wEx','sig','wOS11','wOS12','wOS21','wOS22','lambda2','lps','E0s','E0o','EvBlockLR'};
       Bounds =[[ 10,    10,    10,  5,   20       20,    20,      20,      10      10    20    20      10] ; ... 
                [-10,   -10,   -10, -5,  -20      -20,   -20,     -20,     -10     -10   -20   -20     -10]];   
@@ -254,12 +267,12 @@ for ptN= toDo   % Loop over feelings fits - - - - - - - - - - - - - - -
           %% Crucial optimization call ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
           % (Change below for new model version)
           disp(['Now fitting pt ',num2str(ptN) ' using fmincon, ' codeName ', for eta,sig,wOS11,wOS12,wOS21,wOS22,E0s,E0o,EvBlockLR']);
-          [feelpOpt, mmLL,~, output, ~, ~, hessian] = fmincon(mLP, feelpInit, A, b, Aeq, beq,lb,ub );
+          [feelPOpt, mmLL,~, output, ~, ~, hessian] = fmincon(mLP, feelPInit, A, b, Aeq, beq,lb,ub );
           %% ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     
           % now run HT1lp03f once again to return details and augment with the 
           % fit quality indices :
-          mslf2{ptN} = HT1lp03f( feelpOpt, pS, D, P, psPr, [1,1], 1); 
+          mslf2{ptN} = HT1lp03f( feelPOpt, pS, D, P, psPr, [1,1], 1); 
           mslf2{ptN}.fitOut = output;
           mslf2{ptN}.Hess = hessian;
           fRCondHess = rcond(hessian);  % Is Hessian well-conditioned ( > 1e-8)
@@ -277,9 +290,9 @@ for ptN= toDo   % Loop over feelings fits - - - - - - - - - - - - - - -
           end
 
           feelP = pS.evalRL; 
-          feelP(par2fit) = feelpOpt;   
+          feelP(par2fit) = feelPOpt;   
           % (Change below for new model version) :
-          % NO DUPLICATED ONE IN 10 feelP(7) = feelpOpt(end);  % this is the duplicated one.
+          % NO DUPLICATED ONE IN 10 feelP(7) = feelPOpt(end);  % this is the duplicated one.
           
           % Calculate BIC, with correction for group-wide params.
           %   Note this assumes all pts had same number of trials, which
@@ -299,7 +312,7 @@ for ptN= toDo   % Loop over feelings fits - - - - - - - - - - - - - - -
           % Needed in case of invalid data:
           feelP = nan(1,feelMeasN-4) ; % should eq. to the length of feelP
           mslf2{ptN}.mpostf = nan; mslf2{ptN}.sllf= nan(1,2); BICnN = nan;
-          mslf2{ptN}.fitOut = [];  mslf2{ptN}.Hess= nan(length(feelpInit));
+          mslf2{ptN}.fitOut = [];  mslf2{ptN}.Hess= nan(length(feelPInit));
 
       end
   
