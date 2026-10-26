@@ -1,4 +1,4 @@
-% script HT1fFit03Aug13b03
+% script HT1fFit03Aug13c03
 % 
 % To fit person-evaluation ratings, given the interactive behaviour (decision making),
 %    the latter estimated using dicretized beta distros and global optimization, as per
@@ -29,8 +29,7 @@
 clear variables; scriptFile = 'HT1fFit03Aug13b03'; 
 
 %% ~~~~~~~~~~  Menu-like items ~~~~~~~~~~~~~~~~~~
-econFile = 'HT1tFit1to30_03.mat';  % neuroecon 'treating each other' fits to use.
-% econFile = 'HT1tFit1to30b.mat';  % neuroecon 'treating each other' fits to use.
+econFile = 'HT1tFit1to3003Aug03.mat';  % neuroecon 'treating each other' fits to use.
 
 % Additional strings to use when naming outputs:
 % (Change below for new model version)

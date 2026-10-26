@@ -1,0 +1,334 @@
+% script HT1fFit03Aug13c03
+% 
+% To fit person-evaluation ratings, given the interactive behaviour (decision making),
+%    the latter estimated using dicretized beta distros and global optimization, as per
+%    econFile = 'HT1tFit1to3003Aug03c.mat' below.
+% for the Prolific 03Aug26 Helping Task (HT1) dataset (which has no Other->Self ratings)
+%
+% Version 13  uses returns based exponential Returns kernel / autoregressive  RL approach, and
+%             includes a constant intercept E0 = [E0self,E0other]' as well as 
+%             allowing Self Ret -> Oeval to be different than vice versa, and wOS22 
+%             not constrained to 0 but freely fitted too.
+% Text-search '(Change below for new model version)' and also check HT1lp02f and HT1ll1
+% 
+%   Fitting starts from fits of the neuroecon decision-making e.g. of HT1MAP01t 
+%   (t for treating each other) 
+% To change if fitted to all data or just self data, etc.,
+% the crucial variable is approvs2fit below. 
+%
+%  BIC for this fitting was derived fairly rigorously from iBIC approx.
+%      For HT1, the small sample approximation isn't needed, so -ln(2*pi) dropped
+%  k=parPtN;    % participant level number of parameters
+%  c=gpPtN;     % group-level number of parameters
+%  N            % 
+%  n            % number of datapoints per participant, summed over all blocks.
+%  nN           % 
+%  BIC_kc := -2 ln Lopt + k*ln(n/(2*pi) + (c/N)* ln (nN)
+%                             = -2 ln Lopt + k*(ln n ) + (c/N)* ln (nN)
+
+clear variables; scriptFile = 'HT1fFit03Aug13c03'; 
+
+%% ~~~~~~~~~~  Menu-like items ~~~~~~~~~~~~~~~~~~
+econFile = 'HT1tFit1to3003Aug03c.mat';  % neuroecon 'treating each other' fits to use.
+
+% Additional strings to use when naming outputs:
+% (Change below for new model version)
+nameStr = {'HT1fFit03Aug','13c','SO'};
+codeName = [nameStr{1} nameStr{2} nameStr{3}]; % name of this script or function,
+    % will be used for key outputs.
+
+%% KEY MENU ITEM - MODEL PARAMETER DEFAULTS, INITIAL VALUES, ETC. (Change below for new model version) :
+selfMod = [1,13]; % [1 is the t/DM model, 13] is the evaluations model fitted here.
+
+% *Default* values of ALL parameters used by the model (Change below for new model version):                               
+%      TRANSF lambda  eta wEx  sig  wOS11 wOS12 wOS21  wOS22 lambda2 lps E0s E0o EvBlockLR 
+feelPDefault = [-20,  1.9,-20,-0.56, 0.26, 2.41, 2.41,  0.26, -20,   -20,  0,  0, -1.4];  
+
+% *Initial* values of DELIBERATELY ALL parameters (Change below for new model version) *: as per par2fit below. 
+%                        *              *       *      *     *     *                  *     *      *
+% %               1      2       3      4       5      6     7     8       9     10   11   12      13    
+% %            lambda   eta     wEx    sig    wOS11 wOS12 wOS21  wOS22  lambda2  lps  E0s  E0o  EvBlockLR
+feelPInit = [   -20,    1.9,   -20,   -0.56,  0.26, 2.41,  2.41, 0.26,   -20,   -20   0     0    -0.666 ]; 
+
+%  par2fit, parameter selection to fit in this version, should tally with HT1lp02f
+%  (Change below for new model version):
+par2fit = [2,4,5,6,7,8,11,12,13]; par2fitN  = length(par2fit); % will also used for BIC
+% Retain as initial parameter values ONLY the ones to be fitted here : 
+feelPInit = feelPInit(par2fit);
+groupParN = 0;           % params derived from previous group f-fit, and 
+                         % fixed across pts. here.
+tParN = 8;     % this is the number of freely fitted params in the t part
+tParGpN  = 2;  % this is the number of group-derived then fixed params in the t part.
+
+%  Whether to do code test, full list of pts, etc (Change below for new model version):                             
+codeTesting = 0;  % if set to non-zero, use various debugging settings - see below.
+toDo = 1:30;      % which participant from the 3 Aug 26 dataset to do
+
+%% initial directory work - read in or set by hand key directories to work with
+cwd = cd;         % just a record of where all this is being run from.
+fs = filesep();   % the character that separates folders from subfolders in the filesystem.
+% directories to use, and where to to output results - see dirs.outPath below.   
+dirs = where2findHT1; % paths depending on whether Michael or somebody else (who has added to
+                      % where2findHT1) is running this.
+datdir = dirs.sandpit; % dirs.HT1St2MentSOres;
+cd(datdir);
+
+% for testing, direct outputs to a rough work, 'sandpit' directory:
+if codeTesting >= 1
+    toDo = 1:2;
+    warning('codeTesting is >=1, so few fits done and directed to sandbox directory.');
+    outDir = dirs.sandpit; 
+    addpath(outDir);
+elseif codeTesting == 0
+    warning('NO codeTesting, full output directed to sandbox directory.');  % so outputs directed to dirs.HT1St2MentSOres.');
+    outDir = dirs.sandpit; 
+    % outDir = dirs.HT1St2MentSOres; 
+    addpath(outDir);
+else
+    error('codeTesting code encountered is not provided for');
+end
+
+%% end of Menu-like items ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+apprStr = '11';   approvs2fit = [1,1];    % weights to place on the 
+    % log lik for self, other, and poss. other->self in summing mslf2. 
+    % if '10', [1,0] fit only the self data etc. NOT CHANGED IN MOST MODELS,
+    % WHICH DEALS WITH THE SELF AND OTHER EVALUATIONS ONLY, AND 
+    % PUT THEM IN THE SAME FOOTING.
+
+% Load key data 
+load(econFile);  % provides / updates  d{} (aka D), p{} (aka P), tFit{}
+try d = D; p=P; catch ; end
+    
+%% Form key headers for csvs, tables etc.
+% Columns headings for the output. 
+% Column headings for output. First, retain key ones from decision-making fits.
+%  Maximum extend of evaluation / feeling param vector for RLish models. '*' = current
+%                 *            *     *      *     *     *                     *       *      *
+%          1      2     3      4     5      6     7     8       9      10     11     12     13 
+%       lambda   eta   wEx    sig   wOS11 wOS12 wOS21  wOS22  lambda2  lps    E0s    E0o  EvBlockLR
+
+hdEval = {'lambda','eta','wEx','sig','wOS11','wOS12','wOS21','wOS22','lambda2','lps','E0s','E0o','EvBlockLR'};
+hdEvalFit = {'slpf','sllSf','sllOf','BICf','sllt','slpt','BICt',};
+hdDM   = {'Spref1', 'Spref2','Spref3','Spref4','prevp','prevu',...
+          'prevPri1','prevPri2','prevPri3','prevPri4',...
+          'SPartp','SPartu','SPartnPr1','SPartnPr2','SPartnPr3','SPartnPr4',...
+          'T','blockLR'};
+errHd = {'numID','lambdaSE','etaSE','wExSE','sigSE','wOS11SE',...
+         'wOS12SE','wOS21SE','wOS22SE','lambda2SE','lpsSE','E0sSE','E0oSE','EvBlockLRSE','fLnRCondHess'...
+         'prevpSE','prevuSE','SPartpSE','SPartuSE','TSE','blockLRSE','tFitExitCode','prolificID' };
+fErrHd = errHd(2:14); fErrHd = fErrHd(par2fit); % for easy reference of fitted values
+
+hdf = ['numID',hdEval,hdEvalFit,hdDM];
+hd2=hdf;      % One of these will act as a backup copy.
+totColN = length(hd2);     
+fitMeasN  = length(hdEvalFit);  % this many columns for slpf, sllf, BIC ...
+feelMeasN = length(hdEval);     % max num of evaluation model params ...  
+
+timeStamp = string(datetime('now', 'Format', 'yyyyMMddHHmmss'));
+fitName = [codeName num2str(toDo(1)) 'to' num2str(toDo(end)) char(timeStamp)];   % for storage etc.
+cd(outDir); 
+
+
+%% Extract decision making, i.e. _t_ reat-each-other data from fit24f _t_                 
+totPtN = length(tFit);
+grandTrN = 0; for ptN=1:totPtN grandTrN=grandTrN+2*sum(p{ptN}.trN); end
+tGrandTrN= 0; for ptN=1:totPtN tGrandTrN=tGrandTrN+sum(p{ptN}.trN); end
+warning(['We assume that if there are group-level f-params, they''re based on ' ...
+         num2str(grandTrN) ' trials (f-fit), grand total; also,']);
+warning(['... if there are group-level t-params, they''re based on ' ...
+         num2str(tGrandTrN) ' trials (t-fit), grand total. IS THIS RIGHT?']);
+
+% for combined key decision-making and eval. fitted params. For output,
+% may also use array fitHT1tBf which will not have the string column of prolific ID, 
+% only the numerical PID. Preparet the storage variables:
+tabHd = [string(hdf) "prolificID"];
+fitHT1TBF = array2table(nan(totPtN,totColN),VariableNames=tabHd(1:end-1));
+fitHT1TBF.prolificID = repmat("",totPtN,1);
+% For estimates of errors:
+errMeasN = length(errHd) - 2;  % It has 2 ID columns too!
+errHd = string(errHd);
+errHT1TBF = array2table(nan(totPtN,errMeasN+1),VariableNames=errHd(1:end-1));
+errHT1TBF.prolificID = repmat("",totPtN,1);
+% Now fill in what we already have:
+for ptN=1:totPtN
+    % fill in two forms of ID:
+    fitHT1TBF{ptN,"numID"} = str2num(d{ptN}.PID);
+    fitHT1TBF{ptN,"prolificID"} = string(d{ptN}.code);
+    errHT1TBF{ptN,"numID"} = str2num(d{ptN}.PID);
+    errHT1TBF{ptN,"prolificID"} = string(d{ptN}.code);
+
+
+    % REM In HT1, the SPartnPr1,... and Spref1,... are not filled in.
+    % They were not fitted in previous versions either (were they self-reported?)
+
+    % fill in fitted parameters:
+    % Fitted by grid search only:
+    fitHT1TBF{ptN,22:25} = d{ptN}.Spref;
+    % Fitted by grid search + fmincon :
+    fitHT1TBF{ptN,'prevp'} = d{ptN}.prevp;
+    fitHT1TBF{ptN,'prevu'} = d{ptN}.prevu;
+    fitHT1TBF{ptN,'SPartp'} = d{ptN}.Spartp;
+    fitHT1TBF{ptN,'SPartu'} = d{ptN}.Spartu;
+    fitHT1TBF{ptN,'T'} = d{ptN}.T;
+    fitHT1TBF{ptN,'blockLR'} = d{ptN}.blockLR;
+    fitHT1TBF{ptN,string({'prevPri1','prevPri2','prevPri3','prevPri4'})}= tFit{ptN}.ps.prevPri;
+    fitHT1TBF{ptN,string({'SPartnPr1','SPartnPr2','SPartnPr3','SPartnPr4'})}= tFit{ptN}.ps.SPartnPr;
+    %
+    % Calculate and store sllt, slpt, BICt 
+    % The t-fitted params were maximally: restpInit = prevp, prevu, SPartp, SPartu, T, blockLR, PLUS
+    %                                                 Spref1	Spref2	Spref3	Spref4
+    sllt = tFit{ptN}.sll;  slpt = tFit{ptN}.slp;
+    tNDat = sum(P{ptN}.trN);
+    BICt = -2*sllt  + tParN * (log(tNDat)) + ...
+            (groupParN / totPtN)  * log (tGrandTrN);
+    fitHT1TBF{ptN,string({'sllt','slpt','BICt'})} = [sllt slpt BICt]; 
+
+    %% NO HESSIANS HERE, FITTED BY ADAPTIVE GRIDS AND THE LIKE
+    % % REM tHess variables are:
+    % % [ps.prevp, ps.prevu, ps.SPartp, ps.SPartu, ps.T, ps.blockLR]
+    % se = nan(size(d{ptN}.tHess,1),1);
+    % % Before attempting to estimate Hessian based errors, see that it is well conditioned:
+    % rcondH = rcond(d{ptN}.tHess);
+    % tLnRCondH = nan; if rcondH > 0; tLnRCondH = log(rcondH); end
+    % if ~isfinite(abs(rcondH)) || rcondH < 1e-8 
+    %     warning(['Pt.' num2str(ptN), ', t-Hessian inversion problem: Cond. N rH=' num2str(rcondH) ]);
+    % end
+    % try
+    %     covMat = d{ptN}.tHess \ eye(size(d{ptN}.tHess));
+    %     se = sqrt(diag(covMat));
+    % catch
+    %     warning(['for pt.' num2str(ptN), ', Hessian inversion failed.']);
+    % end
+    errHT1TBF{ptN,string({'prevpSE','prevuSE','SPartpSE','SPartuSE','TSE','blockLRSE'})} = nan; % se'; 
+    errHT1TBF{ptN,'tFitExitCode'} = d{ptN}.tFitMeasures.exitFlag;  % was  tLnRCondH;
+
+    % Interim save:
+      fitHT1tBf = fitHT1TBF{:,1:end-1};
+      mat2csv2Dfl(fitHT1tBf, [outDir fitName '.csv'], 0,1, hdf ); 
+      errHT1tBf = errHT1TBF{:,1:end-1}; 
+      mat2csv2Dfl(errHT1tBf, [outDir 'err' fitName '.csv'], 0,1, errHd(1:end-1) ); 
+
+end
+
+
+
+%% main feelings fit ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+mslf2 = {};
+   
+%%  Construct weakly informative priors, unless priors supplied ~~~~~~
+try 
+  psPr.evalRL0;  
+catch
+  [psPr.evalRL0, ~] = priParEvalRL; 
+end
+
+for ptN= toDo   % Loop over feelings fits - - - - - - - - - - - - - - - 
+
+      % record the version of the model(s) used for t/decisionmaking and 
+      % f/evaluations in both p and d:
+      p{ptN}.selfMod = selfMod;       d{ptN}.selfMod = selfMod;
+      P = p{ptN};                     D = d{ptN}; 
+      errHT1TBF{ptN,'prolificID'} = string(D.code);       % prolific ID
+      errHT1TBF{ptN,'numID'} = str2num(D.PID);     % numerical ID
+
+      try              % ...  which we will now check for and if necessary fill in:   
+            P.rowPolComb;
+      catch
+            P.rowPolComb = basicP.rowPolComb;        P.rowPolS = basicP.rowPolS;
+            % REM below lind stands for 'linear indices'
+            P.lindPC = basicP.lindPC;                P.lindPS =  basicP.lindPS;
+      end
+      % Change below for new model version :
+      P.selfMod = [1,13];  % ,1] would be original decision model = 1,
+                           %  RLish eval model is 3, 7, 10 etc.
+      P.synth = [0,0];     % Explicitly say that we don't simulate feelings data.
+      
+      % Declare the function to be minimized by fmincon. The follwing has to be
+      % re-declared every time we want to do the fit, not e.g. before this loop :
+      pS    = tFit{ptN}.ps;
+      pS.ID = D.PID;          % This should be the corresp. numerical ID.
+      details=0; 
+      % The following line contains all the important defaults. The to-be-fitted
+      % will ofc be replaced within the likelihood fn, e.g. HT1lp02f
+      pS.evalRL  = feelPDefault; 
+
+      mLP = @(feelP)HT1lp03f( feelP, pS, D, P, psPr, approvs2fit, details);
+      % boring: have to specify empty 'linear constraints' in order to get to 
+      % the arguments for the lower and upper bounds, acc. to the doc fmincon example ...
+      A = []; b = []; Aeq = [];  beq = [];
+      % NB fit will take place in transformed space, hence the values of lower and upper bounds.
+      % first row has upper bounds for feelP, second has lower. Maximally,
+      %prHd={'lambda','eta','wEx','sig','wOS11','wOS12','wOS21','wOS22','lambda2','lps','E0s','E0o','EvBlockLR'};
+      Bounds =[[ 10,    10,    10,  5,   20       20,    20,      20,      10      10    20    20      10] ; ... 
+               [-10,   -10,   -10, -5,  -20      -20,   -20,     -20,     -10     -10   -20   -20     -10]];   
+      ub = Bounds(1,par2fit);  % Only these variables are optimized in version 03Aug13c...
+      lb = Bounds(2,par2fit);  % Only these variables are optimized in version 03Aug13c...
+      
+      try
+
+          %% Crucial optimization call ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+          % (Change below for new model version)
+          disp(['Now fitting pt ',num2str(ptN) ' using fmincon, ' codeName ', for eta,sig,wOS11,wOS12,wOS21,wOS22,E0s,E0o,EvBlockLR']);
+          [feelPOpt, mmLL,~, output, ~, ~, hessian] = fmincon(mLP, feelPInit, A, b, Aeq, beq,lb,ub );
+          %% ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    
+          % now run HT1lp03f once again to return details and augment with the 
+          % fit quality indices :
+          mslf2{ptN} = HT1lp03f( feelPOpt, pS, D, P, psPr, [1,1], 1); 
+          mslf2{ptN}.fitOut = output;
+          mslf2{ptN}.Hess = hessian;
+          fRCondHess = rcond(hessian);  % Is Hessian well-conditioned ( > 1e-8)
+          fLnRCondH = nan; if fRCondHess > 0; fLnRCondH = log(fRCondHess); end
+          errHT1TBF{ptN,'fLnRCondHess'} = fLnRCondH;
+          if fRCondHess < 1e-8 || ~isfinite(abs(fRCondHess))
+             warning(['Pt.' num2str(ptN), ', f-Hessian inversion problem: Cond. N rH=' num2str(fRCondHess) ]);
+          end
+          try
+            covMat = hessian \ eye(size(hessian));
+            se = sqrt(diag(covMat))';
+            errHT1TBF{ptN,string(fErrHd)} = se;         
+          catch
+            warning('Inverting the Evaluations Fit Hessian failed, so leaving SEs as NaN');
+          end
+
+          feelP = pS.evalRL; 
+          feelP(par2fit) = feelPOpt;   
+          % (Change below for new model version) :
+          % NO DUPLICATED ONE IN 10 feelP(7) = feelPOpt(end);  % this is the duplicated one.
+          
+          % Calculate BIC, with correction for group-wide params.
+          %   Note this assumes all pts had same number of trials, which
+          %   isn't strictly true, but is approximately true (only first two had slightly different):
+          BICnN = -2*sum(mslf2{ptN}.sllf(1:2)) + ...       % deliberately not sllt here ! 
+                  + par2fitN * (log(2*sum(P.trN))) + ...   % also had - log(2*pi)) + ...
+                  + (groupParN / totPtN)  * log (grandTrN);
+
+          fitHT1TBF{ptN,string(hdEval)} = feelP;
+          % REM hdEvalFit = {'slpf','sllSf','sllOf','BICf','sllt','slpt','BICt',};
+
+          fitHT1TBF{ptN,string(hdEvalFit(1:5))} = [-mslf2{ptN}.mpostf, ...
+                 mslf2{ptN}.sllf(1:2), BICnN, mslf2{ptN}.sllt]; 
+      catch
+          warning(['fmincon MAP fitting failed for pt ' num2str(ptN)]);
+          % if no valid data etc., create appropriate empty outputs:
+          % Needed in case of invalid data:
+          feelP = nan(1,feelMeasN-4) ; % should eq. to the length of feelP
+          mslf2{ptN}.mpostf = nan; mslf2{ptN}.sllf= nan(1,2); BICnN = nan;
+          mslf2{ptN}.fitOut = [];  mslf2{ptN}.Hess= nan(length(feelPInit));
+
+      end
+  
+      save([outDir fitName '.mat'], 'mslf2','fitHT1TBF','errHT1TBF','d', 'p'); 
+      fitHT1tBf = fitHT1TBF{:,1:end-1};
+      mat2csv2Dfl(fitHT1tBf, [outDir fitName '.csv'], 0,1, hdf ); 
+      errHT1tBf = errHT1TBF{:,1:end-1}; 
+      mat2csv2Dfl(errHT1tBf, [outDir 'err' fitName '.csv'], 0,1, errHd(1:end-1) ); 
+
+end
+
+disp(['Completed' scriptFile '. Outputs in ' outDir '.']); 
+warning([fitName ' done. , with NO group params - IS THIS OK?']); 
+cd(cwd)
+

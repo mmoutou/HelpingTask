@@ -8,30 +8,33 @@
 
 toDo = 1:39;     % all participants. localDebug uses only the first two.
 
-thisFitVer = [num2str(toDo(1)) 'to' num2str(toDo(end)) '_03'];
+% Keep the following line
+thisFitVer = [num2str(toDo(1)) 'to' num2str(toDo(end)) '24Oct03'];
 thisFitStr = ['HT1tFit' thisFitVer];    % to store outputs etc.
 write2disk = 1;          % Was 0, so it fitted and then threw the results away.
-localDebug = 0;          % 0 = the full 864-point grid, i.e. the real MAP fit. Hours.
+localDebug = 0;          % 0 = the full grid, i.e. the real MAP fit. Hours.
                          % 1 = a single grid point, minutes, useful only as a smoke test.
-                         % Was 1 for the 25 Aug 26 shakedown run. Now the real thing.
 
 if localDebug; toDo = toDo(1:2); end
 Nl = 4; setLevN = 1;  % In HT1, have 4 levels of choice for effort and only 1 'context' (per Other)
-psPr0.Spref0 = nan(Nl,Nl,setLevN); % Spref rows, Owrk cols, context pages, flat. 
-for o=1:Nl
-    for c=1:setLevN
-        m = o/(1+Nl); u = 1.5*m*(1-m); 
-        psPr0.Spref0(:,o,c) = discBetaMU(m,u,4); 
-    end
-end
-psPr0.prevp0 = [1.05, 1.05];  % A and B for betalike for pSucc of noisyBino describing prevPri
-psPr0.prevu0 = [1.01, 1];   % [1.01, 1] rises very rapidly from 0 and then falls slowly.
+psPr0 =  HT1psPr0Set( 0); % Argument 0 for weakest practical priors.
 
-psPr0.SPartp0 =  [1.05, 1.05]; % [45, 10];  for highly constrained diagnostic. Uninf. is: psPr0.SPartp0 = [1.05, 1.05]; 
-psPr0.SPartu0 = [1.01 1]; % [2, 0.04] for diagnostic;  % check with x = 0:0.01:10; plot(x,gampdf(x,1.5,0.1)) % for less highly constrained.
-
-psPr0.T0 = [1.5, 0.5];        % A and B for gamlike on T
-psPr0.blockLR0 = [1.1, 1.4];  % A and B for betalike for betaLR. Modestly discrourages very high apparent LRs.
+% Was:
+% psPr0.Spref0 = nan(Nl,Nl,setLevN); % Spref rows, Owrk cols, context pages, flat. 
+% for o=1:Nl
+%     for c=1:setLevN
+%         m = o/(1+Nl); u = 1.5*m*(1-m); 
+%         psPr0.Spref0(:,o,c) = discBetaMU(m,u,4); 
+%     end
+% end
+% psPr0.prevp0 = [1.05, 1.05];  % A and B for betalike for pSucc of noisyBino describing prevPri
+% psPr0.prevu0 = [1.01, 1];   % [1.01, 1] rises very rapidly from 0 and then falls slowly.
+% 
+% psPr0.SPartp0 =  [1.05, 1.05]; % [45, 10];  for highly constrained diagnostic. Uninf. is: psPr0.SPartp0 = [1.05, 1.05]; 
+% psPr0.SPartu0 = [1.01 1]; % [2, 0.04] for diagnostic;  % check with x = 0:0.01:10; plot(x,gampdf(x,1.5,0.1)) % for less highly constrained.
+% 
+% psPr0.T0 = [1.5, 0.5];        % A and B for gamlike on T
+% psPr0.blockLR0 = [1.1, 1.4];  % A and B for betalike for betaLR. Modestly discrourages very high apparent LRs.
 
 % psPr0  = [];  % If empty, HT1MAP02t below defaults to very weak priors. 
 
